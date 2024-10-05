@@ -1,0 +1,60 @@
+---
+title: "Initial data analysis with nflverse packages"
+output: html_notebook
+---
+
+
+```{r libraries, include=TRUE, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(nflverse)
+```
+
+```{r player_stats, include=TRUE}
+player_stats <- nflreadr::load_player_stats(seasons = most_recent_season(),
+                                            stat_type = "offense")
+```
+
+`nflreadr::load_player_stats()`. Arguments include:
+
+* `seasons=`: numeric vector, or use the `most_recent_season()` function
+* `stat_type=`: takes "offense", "defense", or "kicking"
+*  `file_type=`: takes "rds" (default), "qs", "csv", or "parquet"
+
+
+From the book:
+
+> As an example, let’s say you need to get Patrick Mahomes’ total passing yard and attempts from the 2022 season. You could do so via load_pbp() but, if you do not need further context (such as down, distance, quarter, etc.), using load_player_stats() is much more efficient.
+
+Below, I'm taking the weekly, box-score level receiving stats, and summarizing them for the pass catchers for the Steelers.
+
+```{r}
+player_stats %>% 
+  filter(recent_team == 'PIT',
+         position %in% c('WR', 'RB', 'TE')) %>% 
+  rename(receiving_receptions = receptions,
+         receiving_targets = targets) %>% 
+  select(player_display_name, position, starts_with("receiving")) %>% 
+  group_by(player_display_name, position) %>% 
+  # summarize(across(starts_with("receiving"), mean, na.rm = TRUE))
+  summarise(
+    across(
+      starts_with("receiving"),
+      list(
+        mean = ~round(mean(., na.rm = TRUE), 1),
+        sum = ~round(sum(., na.rm = TRUE), 1)
+      ),
+      .names = "{.fn}_{.col}"
+    ),
+    .groups='drop'
+  ) %>% 
+  # ungroup() %>% 
+  arrange(-sum_receiving_targets) %>% 
+  filter(sum_receiving_targets >= 5)
+  
+```
+  
+```{r play_by_play_2024, include=TRUE}
+play_by_play_2024 <- load_pbp(seasons=most_recent_season())
+```
+  
+
