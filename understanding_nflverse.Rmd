@@ -28,11 +28,19 @@ From the book:
 Below, I'm taking the weekly, box-score level receiving stats, and summarizing them for the pass catchers for the Steelers.
 
 ```{r}
+player_stats %>% names()
+```
+
+
+```{r}
 player_stats %>% 
   filter(recent_team == 'PIT',
          position %in% c('WR', 'RB', 'TE')) %>% 
   rename(receiving_receptions = receptions,
-         receiving_targets = targets) %>% 
+         receiving_targets = targets,
+         receiving_racr = racr,
+         receiving_air_yards_share = air_yards_share,
+         receiving_target_share = target_share) %>% 
   select(player_display_name, position, starts_with("receiving")) %>% 
   group_by(player_display_name, position) %>% 
   # summarize(across(starts_with("receiving"), mean, na.rm = TRUE))
@@ -40,8 +48,8 @@ player_stats %>%
     across(
       starts_with("receiving"),
       list(
-        mean = ~round(mean(., na.rm = TRUE), 1),
-        sum = ~round(sum(., na.rm = TRUE), 1)
+        mean = ~round(mean(., na.rm = TRUE), 2),
+        sum = ~round(sum(., na.rm = TRUE), 2)
       ),
       .names = "{.fn}_{.col}"
     ),
@@ -53,8 +61,45 @@ player_stats %>%
   
 ```
   
+Some of these statistics won't have any meaning summed (or possibly by taking an average), so I'll dig into each one to get clearer on that.
+  
+This looks like a good article on [EPA](https://bestballstats.com/expected-points-added-a-full-explanation/#:~:text=Expected%20Points%20Added%20(EPA)%20is,evaluate%20team%20and%20player%20performance.).
+
+
+## Play by play data
+
 ```{r play_by_play_2024, include=TRUE}
 play_by_play_2024 <- load_pbp(seasons=most_recent_season())
 ```
+
+## Average field position
+
+
+## When is George Pickens targeted? 
+
+### Splits
+
+### Downs 
+
+### Quarters 
+
+### Redzone 
+
+```{r}
+play_by_play_2024 %>%
+  filter(posteam == 'PIT',
+         play_type == 'pass') %>% 
+         # receiver_player_name == 'G.Pickens') %>% 
+# use this for searching for fields
+    # select(contains('target'))
+  mutate(redzone_play = if_else(yardline_100 <= 20, 1, 0),
+         short_redzone_play = if_else(yardline_100 <= 10, 1, 0)) %>% 
+  filter(redzone_play == 1) %>% 
+  group_by(receiver_player_name) %>% 
+  summarise(count_targets = n()) %>% 
+  arrange(-count_targets)
   
+group_by(pass_length, pass_location, game_half, no_huddle)
+receiving_years
+```
 
