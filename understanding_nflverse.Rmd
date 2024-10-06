@@ -83,20 +83,31 @@ play_by_play_2024 <- load_pbp(seasons=most_recent_season())
 
 ### Quarters 
 
+### Position at snap 
+
 ### Redzone 
 
 ```{r}
 play_by_play_2024 %>%
-  filter(posteam == 'PIT',
-         play_type == 'pass') %>% 
-         # receiver_player_name == 'G.Pickens') %>% 
-# use this for searching for fields
-    # select(contains('target'))
+  filter(play_type == 'pass',
+         posteam == 'PIT') %>% 
+  # filter(receiver_player_name == 'Di.Johnson') %>%
+  # select(touchdown, everything()) 
+  # select(contains('catch'))
   mutate(redzone_play = if_else(yardline_100 <= 20, 1, 0),
          short_redzone_play = if_else(yardline_100 <= 10, 1, 0)) %>% 
+  # select(touchdown, redzone_play, yardline_100, everything())
   filter(redzone_play == 1) %>% 
-  group_by(receiver_player_name) %>% 
-  summarise(count_targets = n()) %>% 
+         # receiver_player_name == 'Di.Johnson',
+         # need to figure out these fields. When I filter out NULL receiver player name, the receiving stats change. Look at Dionte Johnson (he has a receiving TD when I don't filter, but does not when I do)
+         # !is.na(receiver_player_name)) %>%
+  group_by(posteam, redzone_play, receiver_player_name) %>% 
+    # need to add completions...
+  summarise(count_targets = n(),
+            sum_yards_gained = sum(yards_gained),
+            sum_touchdown = sum(touchdown),
+            sum_yards_after_catch = sum(yards_after_catch, na.rm = TRUE),
+            .groups='drop') %>% 
   arrange(-count_targets)
   
 group_by(pass_length, pass_location, game_half, no_huddle)
