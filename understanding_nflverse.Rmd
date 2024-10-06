@@ -94,8 +94,16 @@ play_by_play_2024 %>%
 
 ## Run-Pass split
 
-```{r}
+Here's run-pass split, but it lacks in-game context. If a team is behind, they'll be much more likely to be pass-heavy.
 
+```{r}
+play_by_play_2024 %>% 
+  filter(play_type %in% c('run', 'pass')) %>% 
+  # could also add quarter
+  group_by(posteam, play_type) %>% 
+  tally() %>% 
+  mutate(perc_total = round((n / sum(n)) * 100, 1)) %>% 
+  arrange(-perc_total)
 ```
 
 
