@@ -7,6 +7,7 @@ output: html_notebook
 ```{r libraries, include=TRUE, warning=FALSE, message=FALSE}
 library(tidyverse)
 library(nflverse)
+library(gt)
 ```
 
 ```{r player_stats, include=TRUE}
@@ -96,7 +97,7 @@ play_by_play_2024 %>%
 
 Here's run-pass split, but it lacks in-game context. If a team is behind, they'll be much more likely to be pass-heavy.
 
-```{r}
+```{r run_pass_split1, include=TRUE}
 play_by_play_2024 %>% 
   filter(play_type %in% c('run', 'pass')) %>% 
   # could also add quarter
@@ -106,6 +107,69 @@ play_by_play_2024 %>%
   arrange(-perc_total)
 ```
 
+```{r run_pass_split2, include=TRUE}
+play_by_play_2024 %>% 
+  arrange(-score_differential) %>% 
+  # probably an established way to get at this that takes into account time remaining in the game, too
+  mutate(within_two_scores = if_else(abs(score_differential) <= 16, 1, 0)) %>% 
+  filter(play_type %in% c('run', 'pass'),
+         within_two_scores == 1) %>% 
+  group_by(posteam, within_two_scores, play_type) %>% 
+  tally() %>% 
+  mutate(perc_total = round((n / sum(n)) * 100, 1)) %>% 
+  arrange(posteam, -perc_total) %>% 
+  gt() %>%
+  cols_label(play_type = 'Play type',
+             n = '# of plays',
+             perc_total = '% of total') %>%
+  #add table title
+  tab_header(title = md("**Run-pass split by NFL teams in the 2024 Season**"),
+             subtitle = 'Of plays run within 16 points (ahead or behind)') %>% 
+  tab_source_note(source_note = "Data from `nflreadr::` package") %>% 
+  #apply new style to all column headers
+  tab_style(
+    locations = cells_column_labels(columns = everything()),
+    style = list(
+      #thick border
+      cell_borders(sides = "bottom", weight = px(3)),
+      #make text bold
+      cell_text(weight = "bold")
+    )
+  ) %>% 
+  data_color(columns = c(perc_total),
+             colors = viridis::magma(100)) %>% 
+  #apply different style to title
+  # tab_style(
+  #   style = list(
+  #     cell_fill(color = "lightblue"),   # Background color
+  #     cell_text(weight = "bold")        # Bold text
+  #   ),
+  #   locations = cells_body(
+  #     rows = posteam == "PIT"
+  #   )
+  # ) %>% 
+  opt_all_caps() %>% 
+  opt_table_font(
+    font = list(
+      google_font("Roboto"),
+      default_fonts()
+    )
+  ) %>% 
+  tab_options(
+    #remove border between column headers and title
+    column_labels.border.top.width = px(3),
+    column_labels.border.top.color = "transparent",
+    #remove border around the table
+    table.border.top.color = "transparent",
+    table.border.bottom.color = "transparent",
+    #adjust font sizes and alignment
+    source_notes.font.size = 12,
+    heading.align = "left"
+  )
+```
+
+
+## Average years per rush / pass play
 
 ## Personnel groupings 
 
