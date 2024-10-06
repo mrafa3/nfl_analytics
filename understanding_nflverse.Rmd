@@ -74,6 +74,32 @@ play_by_play_2024 <- load_pbp(seasons=most_recent_season())
 
 ## Average field position
 
+```{r}
+play_by_play_2024 %>% 
+  # filter(posteam == 'PIT') %>%
+  filter(!is.na(down)) %>% 
+  group_by(game_id, drive) %>% 
+  # Check that slicing takes the first play of each possession
+  slice(1) %>% 
+  # mutate(play_seq = n()) %>% 
+  # select(play_seq, everything())
+  ungroup() %>% 
+  group_by(posteam) %>% 
+  summarise(avg_starting_field_position = 100 - round(mean(yardline_100), 0)) %>% 
+  mutate(rank_avg_starting_field_position = dense_rank(-avg_starting_field_position)) %>% 
+  arrange(rank_avg_starting_field_position)
+  filter(drive == 2) 
+```
+
+
+## Run-Pass split
+
+```{r}
+
+```
+
+
+## Personnel groupings 
 
 ## When is George Pickens targeted? 
 
