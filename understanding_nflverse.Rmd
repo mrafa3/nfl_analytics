@@ -61,6 +61,15 @@ player_stats %>%
   filter(sum_receiving_targets >= 5)
   
 ```
+
+`nflreadr::load_rosters()` is a way to pull in the headshots of players, which I'll use to make a nice `gt::` table of Pittsburgh's receiving in 2024.
+
+```{r roster_2024, include=TRUE}
+roster_2024 <- nflreadr::load_rosters(2024) %>%
+  select(full_name, gsis_id, headshot_url)
+```
+  
+ 
   
 Some of these statistics won't have any meaning summed (or possibly by taking an average), so I'll dig into each one to get clearer on that.
   
@@ -244,20 +253,81 @@ play_by_play_2024 %>%
 
 # From the book
 
+```{r teams, include=TRUE}
+teams <- nflreadr::load_teams(current = TRUE) %>%
+  select(team_abbr, team_nick, team_name, team_color, team_color2)
 
+teams
+```
 
+### Exercises
 
+```{r pbp_2022, include=TRUE}
+pbp_2022 <- load_pbp(2022) %>% 
+  filter(season_type == 'REG')
+```
 
-
-
-## Time in pocket 
+1. Use filter() to select only Patrick Mahomes and all passes that resulted in interceptions.
 
 ```{r}
-library(vroom)
+pbp_2022 %>% 
+  filter(passer == 'P.Mahomes',
+         interception == 1)
 ```
 
 
+2. Add a summarize() to determine the average air yards (air_yards) for his combined interceptions.
+
 ```{r}
-time_in_pocket <- vroom("http://nfl-book.bradcongelio.com/qb-tip")
+pbp_2022 %>% 
+  filter(passer == 'P.Mahomes',
+         interception == 1) %>% 
+  group_by(posteam, passer) %>% 
+  summarise(avg_air_yards = round(mean(air_yards, na.rm = TRUE), 1))
+```
+
+2.7.2 Exercise 2 
+
+1. In a data frame titled wide_receivers, find the average yards after catch (yards_after_catch) and average yards after catch EPA (yac_epa) for the top-10 receivers in total receiving yards. In doing so, you will need to use group_by() on receiver.
+
+
+```{r}
+pbp_2022 %>% 
+  filter(!is.na(receiver)) %>% 
+  group_by(posteam, receiver) %>% 
+  summarise(ttl_receiving_yards = sum(yards_gained, na.rm = TRUE),
+            avg_yac = mean(yards_after_catch, na.rm = TRUE),
+            avg_yac_epa = mean(yac_epa, na.rm = TRUE),
+            .groups = 'drop') %>% 
+  top_n(10, ttl_receiving_yards)
+```
+
+2.7.3 Exercise 3 
+1. In a data frame titled qb_hits, find the total number of times each defensive unit (defteam) recorded a QB hit (qb_hit).
+
+```{r}
+pbp_2022 %>% 
+  filter(!is.na(defteam)) %>% 
+  group_by(defteam) %>% 
+  summarise(ttl_qb_hits = sum(qb_hit, na.rm = TRUE)) %>% 
+  arrange(-ttl_qb_hits)
+```
+
+2.7.4 Exercise 4 
+1. After running the following code, add a column titled difference using that mutate() verb that calculates the difference between each quarterback’s total_completions and total_incompletions.
+
+```{r}
+pbp_2022 %>%
+  filter(complete_pass == 1 |
+           incomplete_pass == 1 |
+           interception == 1, !is.na(down)) %>%
+  group_by(posteam, passer) %>%
+  summarize(total_completions = sum(complete_pass == 1,
+                                    na.rm = TRUE),
+            total_incompletions = sum(incomplete_pass == 1,
+                                      na.rm = TRUE),
+            .groups = 'drop') %>%
+  filter(total_completions >= 180) %>% 
+  mutate(difference = total_completions - total_incompletions)
 ```
 
