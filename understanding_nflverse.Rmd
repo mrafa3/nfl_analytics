@@ -89,7 +89,6 @@ play_by_play_2024 %>%
   summarise(avg_starting_field_position = 100 - round(mean(yardline_100), 0)) %>% 
   mutate(rank_avg_starting_field_position = dense_rank(-avg_starting_field_position)) %>% 
   arrange(rank_avg_starting_field_position)
-  filter(drive == 2) 
 ```
 
 
@@ -185,6 +184,7 @@ play_by_play_2024 %>%
 
 ### Redzone 
 
+
 ```{r}
 play_by_play_2024 %>%
   filter(play_type == 'pass',
@@ -198,6 +198,7 @@ play_by_play_2024 %>%
   filter(redzone_play == 1) %>% 
          # receiver_player_name == 'Di.Johnson',
          # need to figure out these fields. When I filter out NULL receiver player name, the receiving stats change. Look at Dionte Johnson (he has a receiving TD when I don't filter, but does not when I do)
+  # when receiver_player_name IS NULL, it appears to be 1) a sack, or 2) an incompletion that is not a target (throwaway or bat down at the LOS)
          # !is.na(receiver_player_name)) %>%
   group_by(posteam, redzone_play, receiver_player_name) %>% 
     # need to add completions...
@@ -210,5 +211,53 @@ play_by_play_2024 %>%
   
 group_by(pass_length, pass_location, game_half, no_huddle)
 receiving_years
+```
+
+
+### Run success rate 
+
+```{r run_success_rate, include=TRUE}
+play_by_play_2024 %>% 
+  filter(play_type == 'run',
+         play == 1,
+         # an NA rusher indicates a qb_scramble, so I'll filter those out of this
+         qb_scramble != 1, 
+         !is.na(down)) %>% 
+  group_by(posteam, rusher) %>% 
+  summarise(carries = n(), 
+            success_rate = mean(success),
+            .groups = 'drop') %>% 
+  filter(carries >= 20) %>% 
+  arrange(-success_rate) %>% 
+  mutate(rank_success_rate = rank(-success_rate))
+```
+
+I'm curious about the success rate of Fields' runs, whether they were designed or a scramble. It doesn't look like the `qb_scramble` field is coded with any scrambles to date, so I'll let that one simmer for a few weeks.
+
+```{r}
+play_by_play_2024 %>% 
+  # marking play_type = 'run' removes QB kneels 
+  filter(play_type == 'run',
+         rusher == 'J.Fields')
+```
+
+
+# From the book
+
+
+
+
+
+
+
+## Time in pocket 
+
+```{r}
+library(vroom)
+```
+
+
+```{r}
+time_in_pocket <- vroom("http://nfl-book.bradcongelio.com/qb-tip")
 ```
 
