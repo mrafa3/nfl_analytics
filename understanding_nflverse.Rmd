@@ -139,13 +139,55 @@ player_stats %>%
   arrange(-sack_yards)
 ```
 
+```{r}
 
 
-## Play by play data
+```
+
+
+# Play by play data
 
 ```{r play_by_play_2024, include=TRUE}
 play_by_play_2024 <- load_pbp(seasons=most_recent_season())
 ```
+
+Fields' average air EPA is among the lowest in the league through Week 5 on 1st and 2nd downs. I'd like to dig more into what his 1st down attempts look like.
+
+```{r mean_airepa, include=TRUE}
+play_by_play_2024 %>%
+  filter(complete_pass == 1 |
+           incomplete_pass == 1 |
+           interception == 1 &
+           !is.na(down)) %>%
+  filter(down <= 3) %>%
+  group_by(posteam, passer, down) %>%
+  summarize(
+    attempts = n(),
+    mean_airepa = mean(air_epa, na.rm = TRUE),
+    .groups = 'drop') %>%
+  filter(attempts >= 10) %>%
+  arrange(down, -mean_airepa)
+```
+
+```{r}
+play_by_play_2024 %>% 
+  filter(posteam == 'PIT',
+         down == 1,
+         play_type %in% c('run', 'pass')) %>% 
+  group_by(posteam, defteam) %>% 
+  # group_by(posteam, defteam, play_type) %>% 
+  # tally()
+  summarise(avg_yards_gained = mean(yards_gained),
+            .groups = 'drop')
+```
+
+
+
+## Passing 
+
+
+
+
 
 ## Average field position
 
@@ -395,4 +437,10 @@ pbp_2022 %>%
   filter(total_completions >= 180) %>% 
   mutate(difference = total_completions - total_incompletions)
 ```
+
+# Boneyard 
+
+Note from the book on measuring "garbage time":
+
+> To examine the impact of “garbage time” statistics, we can add an additional filter() that removes those plays that take place within the last 2-minutes of the half and when the probability of winning for either team is over 95% or under 5%...That said, I more often than not do not concern myself with removing “garbage time” statistics. Despite the robust amount of data provided by the nflverse play-by-play function, the information still lacks great amount of granularity and, because of this, I believe removing “garbage time” plays often does more harm than good in the data analysis process.
 
