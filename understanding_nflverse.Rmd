@@ -40,7 +40,8 @@ player_stats %>% names()
          receiving_targets = targets,
          receiving_racr = racr,
          receiving_air_yards_share = air_yards_share,
-         receiving_target_share = target_share) %>% 
+         receiving_target_share = target_share,
+         receiving_wopr = wopr) %>% 
   select(recent_team, player_display_name, position, starts_with("receiving")) %>% 
   group_by(recent_team, player_display_name, position) %>% 
   # summarize(across(starts_with("receiving"), mean, na.rm = TRUE))
@@ -65,8 +66,8 @@ player_stats %>% names()
 ```{r}
 receiving_stats %>% 
   group_by(recent_team) %>% 
-  slice_max(mean_receiving_target_share) %>% 
-  arrange(-mean_receiving_target_share)
+  slice_max(sum_receiving_wopr) %>% 
+  arrange(-sum_receiving_wopr)
 ```
 
 
