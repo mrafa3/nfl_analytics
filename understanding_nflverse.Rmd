@@ -42,10 +42,12 @@ player_stats %>% names()
          receiving_air_yards_share = air_yards_share,
          receiving_target_share = target_share,
          receiving_wopr = wopr) %>% 
-  select(recent_team, player_display_name, position, starts_with("receiving")) %>% 
+  select(recent_team, player_display_name, position, fantasy_points, starts_with("receiving")) %>% 
   group_by(recent_team, player_display_name, position) %>% 
   # summarize(across(starts_with("receiving"), mean, na.rm = TRUE))
   summarise(
+    sum_fantasy_points = sum(fantasy_points, na.rm = TRUE),
+    mean_fantasy_points = mean(fantasy_points, na.rm = TRUE), 
     across(
       starts_with("receiving"),
       list(
@@ -54,13 +56,13 @@ player_stats %>% names()
       ),
       .names = "{.fn}_{.col}"
     ),
+    fantasy_points_per_wopr = sum_fantasy_points / sum_receiving_wopr,
     games_played = n(),
     .groups='drop'
   ) %>% 
   # ungroup() %>% 
   arrange(-sum_receiving_targets) %>% 
   filter(sum_receiving_targets >= 5))
-  
 ```
 
 ```{r}
@@ -68,6 +70,23 @@ receiving_stats %>%
   group_by(recent_team) %>% 
   slice_max(sum_receiving_wopr) %>% 
   arrange(-sum_receiving_wopr)
+```
+
+```{r wopr_fantasy_points, include=TRUE}
+receiving_stats %>% 
+  ggplot(.,
+         aes(x=sum_receiving_wopr,
+             y=sum_fantasy_points,
+             color=if_else(recent_team == 'PIT', 'PIT', 'Other'))) + 
+  ggrepel::geom_text_repel(data = . %>% filter(recent_team == 'PIT'),
+                           aes(label = player_display_name)) + 
+  geom_point() + 
+  ggtitle('Receiving and fantasy points through 5 weeks of 2024 season',
+          subtitle = 'Steelers highlighted') + 
+  scale_color_manual(values = c('Other' = 'black',
+                                'PIT' = 'gold')) + 
+  theme_minimal() + 
+  theme(legend.position = 'none')
 ```
 
 
