@@ -83,6 +83,39 @@ Some of these statistics won't have any meaning summed (or possibly by taking an
   
 This looks like a good article on [EPA](https://bestballstats.com/expected-points-added-a-full-explanation/#:~:text=Expected%20Points%20Added%20(EPA)%20is,evaluate%20team%20and%20player%20performance.).
 
+# Adjusted net yards per passing attempt 
+
+```{r}
+player_stats %>% 
+  # add opponent_team to the group_by() for game-by-game stats
+  group_by(recent_team, player_name) %>% 
+  # this is copied from the book, which replicates the passing tables found in Pro Football Reference
+  # the AY / A stat is the one that I'm most interested in
+  summarize(
+    completions = sum(completions),
+    attempts = sum(attempts),
+    cmp_pct = completions / attempts,
+    yards = sum(passing_yards),
+    touchdowns = sum(passing_tds),
+    td_pct = touchdowns / attempts * 100,
+    interceptions = sum(interceptions),
+    int_pct = interceptions / attempts * 100,
+    first_down = sum(passing_first_downs),
+    yards_attempt = yards / attempts,
+    adj_yards_attempt = (yards + 20 * touchdowns - 45 * interceptions) / attempts,
+    yards_completions = yards / completions,
+    yards_game = yards / 17,
+    sacks = sum(sacks),
+    sack_yards = sum(sack_yards),
+    sack_pct = sacks / (attempts + sacks) * 100,
+    .groups = 'drop') %>% 
+  filter(attempts > 100) %>% 
+  select(recent_team, player_name, adj_yards_attempt, everything()) %>% 
+  # arrange(-adj_yards_attempt)
+  arrange(-sack_yards)
+```
+
+
 
 ## Play by play data
 
