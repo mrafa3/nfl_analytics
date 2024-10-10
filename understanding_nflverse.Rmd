@@ -33,17 +33,16 @@ player_stats %>% names()
 ```
 
 
-```{r}
-player_stats %>% 
-  filter(recent_team == 'PIT',
-         position %in% c('WR', 'RB', 'TE')) %>% 
+```{r receiving_stats, include=TRUE}
+(receiving_stats <- player_stats %>% 
+  filter(position %in% c('WR', 'RB', 'TE')) %>% 
   rename(receiving_receptions = receptions,
          receiving_targets = targets,
          receiving_racr = racr,
          receiving_air_yards_share = air_yards_share,
          receiving_target_share = target_share) %>% 
-  select(player_display_name, position, starts_with("receiving")) %>% 
-  group_by(player_display_name, position) %>% 
+  select(recent_team, player_display_name, position, starts_with("receiving")) %>% 
+  group_by(recent_team, player_display_name, position) %>% 
   # summarize(across(starts_with("receiving"), mean, na.rm = TRUE))
   summarise(
     across(
@@ -54,13 +53,22 @@ player_stats %>%
       ),
       .names = "{.fn}_{.col}"
     ),
+    games_played = n(),
     .groups='drop'
   ) %>% 
   # ungroup() %>% 
   arrange(-sum_receiving_targets) %>% 
-  filter(sum_receiving_targets >= 5)
+  filter(sum_receiving_targets >= 5))
   
 ```
+
+```{r}
+receiving_stats %>% 
+  group_by(recent_team) %>% 
+  slice_max(mean_receiving_target_share) %>% 
+  arrange(-mean_receiving_target_share)
+```
+
 
 `nflreadr::load_rosters()` is a way to pull in the headshots of players, which I'll use to make a nice `gt::` table of Pittsburgh's receiving in 2024.
 
