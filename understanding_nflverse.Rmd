@@ -105,6 +105,10 @@ This looks like a good article on [EPA](https://bestballstats.com/expected-point
 
 # Adjusted net yards per passing attempt 
 
+A note from the book on play-by-play passing stats:
+
+> Aside from when attempting to replicate the official statistics, it is better to use just passer as it removes those instances where a QB spike, scramble, or sack my skew the results of your data.
+
 ```{r}
 player_stats %>% 
   # add opponent_team to the group_by() for game-by-game stats
