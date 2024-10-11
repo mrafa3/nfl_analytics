@@ -366,3 +366,50 @@ pfr_stats_rec_filtered_pit %>%
   theme(legend.position = 'none')
 ```
 
+
+
+# Defensive stats 
+
+## Pro Football Reference 
+
+```{r pfr_stats_def, include=TRUE}
+pfr_stats_def <- nflreadr::load_pfr_advstats(seasons = 2024,
+                                             stat_type = "def",
+                                             summary_level = "season")
+
+pfr_stats_def <- pfr_stats_def %>%
+  left_join(teams, by = c("tm" = "team_abbr"))
+
+names(pfr_stats_def)
+```
+```{r pfr_stats_def_filtered_cb, include=TRUE}
+pfr_stats_def_filtered_cb <- pfr_stats_def %>% 
+  filter(pos == 'CB',
+         tgt >= 20)
+```
+
+```{r}
+pfr_stats_def_filtered_cb %>% 
+  filter(tm == 'PIT')
+```
+
+
+```{r warning=FALSE, message=FALSE}
+pfr_stats_def_filtered_cb %>% 
+  ggplot(.,
+         aes(x=yds_cmp,
+             y=rat,
+             alpha=if_else(tm %in% c('PIT', 'LV'), 'PIT/LV', 'Other'))) + 
+  geom_point(color=pfr_stats_def_filtered_cb$team_color, size=3.5) +
+  geom_text_repel(aes(label = player),
+                  familiy='Roboto', fontface='bold', size=3.5) + 
+  labs(y='QB rating allowed',
+       x='Yards per completion') + 
+  scale_alpha_manual(values = c('PIT/LV' = 1,
+                                'Other' = .2)) + 
+  nfl_analytics_theme() + 
+  theme(legend.position = 'none')
+```
+
+
+
