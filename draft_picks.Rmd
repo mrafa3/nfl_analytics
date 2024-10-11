@@ -1,5 +1,5 @@
 ---
-title: "NFL Analytics: Exploring personnel groupings"
+title: "NFL Analytics: Draft and Combine"
 output: html_notebook
 ---
 
