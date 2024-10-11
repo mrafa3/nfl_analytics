@@ -50,3 +50,57 @@ ggplot(data = rb_picks, aes(x = rush_yards, y = pick)) +
         plot.caption = element_textbox_simple())
 ```
 
+```{r}
+combine_data <- nflreadr::load_combine() %>%
+  select(pfr_id, forty) %>%
+  filter(!is.na(pfr_id) & !is.na(forty))
+
+rosters <- nflreadr::load_rosters(2000:2022) %>%
+  select(gsis_id, pfr_id) %>%
+  distinct(gsis_id, .keep_all = TRUE)
+
+player_stats <- nflreadr::load_player_stats(seasons = TRUE,
+                                            stat_type = "offense") %>%
+  filter(position == "RB" & !is.na(player_name) &
+           season_type == "REG") %>%
+  group_by(player_name, player_id) %>%
+  summarize(total_yards = sum(rushing_yards, na.rm = TRUE),
+            team = last(recent_team),
+            .groups = 'drop')
+
+player_stats <- player_stats %>%
+  left_join(rosters, by = c("player_id" = "gsis_id"))
+
+player_stats <- player_stats %>%
+  filter(!is.na(pfr_id))
+
+player_stats <- player_stats %>%
+  left_join(combine_data, by = c("pfr_id" = "pfr_id")) %>%
+  filter(!is.na(forty))
+
+player_stats <- player_stats %>%
+  left_join(teams, by = c("team" = "team_abbr"))
+```
+
+```{r warning = FALSE, message=FALSE}
+ggplot(data = player_stats, aes(x = forty, y = total_yards)) +
+  geom_point(color = player_stats$team_color, size = 3.5) +
+  geom_smooth(method = lm, se = FALSE,
+              color = "black",
+              linetype = "dashed",
+              linewidth = 0.8) +
+  scale_x_continuous(breaks = scales::pretty_breaks()) +
+  scale_y_continuous(breaks = scales::pretty_breaks(),
+                     labels = scales::comma_format()) +
+  theme_minimal() + 
+  # nfl_analytics_theme() +
+  xlab("Forty-Yard Dash Time") +
+  ylab("Career Rushing Yards") +
+  labs(title = "**Forty-Yard Dash Time vs. Career Rushing Yards**",
+       subtitle = "2000 to 2022",
+       caption = "*An Introduction to NFL Analytics with R*<br>
+       **Brad J. Congelio**") +
+  theme(plot.title = element_textbox_simple(),
+        plot.caption = element_textbox_simple())
+```
+
