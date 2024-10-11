@@ -14,13 +14,17 @@ library(gt)
 I'd like to replicate that Pickens was used in 59% of snaps against the Cowboys in Week 5.
 
 ```{r personnel, include=TRUE}
-(personnel <- nflreadr::load_participation())
+(personnel <- nflreadr::load_participation(seasons = 2024))
 ```
 
 ```{r}
 personnel %>% 
   filter(team == 'PIT')
 ```
+
+
+## Analysis of the three-edge look (Watt, Highsmith, Herbig) 
+
 
 
 

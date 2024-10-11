@@ -1,0 +1,52 @@
+---
+title: "NFL Analytics: Exploring personnel groupings"
+output: html_notebook
+---
+
+```{r libraries, include=TRUE, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(nflverse)
+library(gt)
+library(ggtext)
+```
+
+# Draft pick analysis 
+
+
+
+# From the Congelio book 
+
+```{r}
+draft_picks <- nflreadr::load_draft_picks()
+teams <- nflreadr::load_teams()
+
+rb_picks <- draft_picks %>%
+  filter(position == "RB") %>%
+  select(pick, team, rush_atts, rush_yards) %>%
+  filter(pick <= 100)
+
+rb_picks <- rb_picks %>%
+  left_join(teams, by = c("team" = "team_abbr"))
+```
+
+
+
+```{r warning = FALSE, message=FALSE}
+ggplot(data = rb_picks, aes(x = rush_yards, y = pick)) +
+  geom_point(color = rb_picks$team_color, size = rb_picks$rush_atts / 500) +
+  scale_y_continuous(breaks = scales::pretty_breaks()) +
+  scale_x_continuous(breaks = scales::pretty_breaks(),
+                     labels = scales::comma_format()) +
+  geom_smooth(se = FALSE) +
+  xlab("Career Rushing Yards") +
+  ylab("Pick Number") +
+  theme_minimal() + 
+  # nfl_analytics_theme() +
+  labs(title = "**Career Rushing Yards vs. Pick Number**",
+       subtitle = "1980 to 2022",
+       caption = "*An Introduction to NFL Analytics with R*<br>
+       **Brad J. Congelio**") +
+  theme(plot.title = element_textbox_simple(),
+        plot.caption = element_textbox_simple())
+```
+
