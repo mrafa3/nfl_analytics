@@ -1,0 +1,52 @@
+---
+title: "NFL Analytics: Exploring personnel groupings"
+output: html_notebook
+---
+
+```{r libraries, include=TRUE, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(nflverse)
+library(gt)
+```
+
+# Personnel groupings in 2024
+
+```{r personnel, include=TRUE}
+(personnel <- nflreadr::load_participation())
+```
+
+```{r}
+personnel %>% 
+  filter(team == 'PIT')
+```
+
+
+
+# From Congelio book
+
+```{r participation, include=TRUE}
+(participation <- nflreadr::load_participation(season = 2024, include_pbp = TRUE))
+```
+
+
+```{r participation_split, include=TRUE}
+(participation_split <- participation %>%
+  filter(!is.na(offense_formation)) %>%
+  filter(posteam == "PIT") %>%
+  tidyr::separate_rows(offense_players, sep = ";") %>%
+  group_by(offense_personnel, offense_players) %>%
+  summarize(total = n(),
+            .groups = 'drop'))
+```
+
+```{r roster_2023, include=TRUE}
+roster_2023 <- nflreadr::load_rosters(2023) %>%
+  select(full_name, gsis_id, headshot_url)
+```
+
+
+```{r}
+participation_split <- participation_split %>%
+  left_join(roster_2023, by = c("offense_players" = "gsis_id"))
+participation_split
+```

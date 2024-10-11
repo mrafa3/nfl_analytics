@@ -285,34 +285,6 @@ play_by_play_2024 %>%
 
 ## Average years per rush / pass play
 
-## Personnel groupings 
-
-
-```{r participation, include=TRUE}
-(participation <- nflreadr::load_participation(season = 2023, include_pbp = TRUE)))
-```
-
-```{r participation_split, include=TRUE}
-(participation_split <- participation %>%
-  filter(!is.na(offense_formation)) %>%
-  filter(posteam == "PIT") %>%
-  tidyr::separate_rows(offense_players, sep = ";") %>%
-  group_by(offense_personnel, offense_players) %>%
-  summarize(total = n(),
-            .groups = 'drop'))
-```
-
-```{r roster_2023, include=TRUE}
-roster_2023 <- nflreadr::load_rosters(2023) %>%
-  select(full_name, gsis_id, headshot_url)
-```
-
-
-```{r}
-participation_split <- participation_split %>%
-  left_join(roster_2023, by = c("offense_players" = "gsis_id"))
-participation_split
-```
 
 
 ## When is George Pickens targeted? 
