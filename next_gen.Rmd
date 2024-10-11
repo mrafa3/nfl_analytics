@@ -413,3 +413,62 @@ pfr_stats_def_filtered_cb %>%
 
 
 
+# FTN Charting 
+
+```{r ftn_data, include=TRUE}
+ftn_data <- nflreadr::load_ftn_charting(2024)
+
+play_by_play_2024 <- load_pbp(seasons = most_recent_season())
+```
+
+```{r join_pbp_ftn, include=TRUE}
+play_by_play_2024 <- play_by_play_2024 %>%
+  left_join(ftn_data, by = c("game_id" = "nflverse_game_id",
+                             "play_id" = "nflverse_play_id"))
+```
+
+This is copied from the book:
+
+```{r}
+airyards_accu <- play_by_play_2024 %>%
+  filter(season_type == "REG") %>%
+  filter(complete_pass == 1 | incomplete_pass == 1, !is.na(down)) %>%
+  group_by(passer) %>%
+  mutate(total_passes = n()) %>%
+  filter(total_passes >= 100) %>%
+  ungroup() %>%
+  group_by(passer, posteam, air_yards) %>%
+  summarize(
+    total_att = n(),
+    total_catchable = sum(is_catchable_ball == "TRUE", na.rm = TRUE),
+    total_pct = total_catchable / total_att) %>%
+  filter(air_yards >= 0 & air_yards <= 25)
+```
+
+
+```{r}
+teams <- nflreadr::load_teams(current = TRUE)
+
+airyards_accu <- airyards_accu %>%
+  left_join(teams, by = c("posteam" = "team_abbr"))
+
+airyards_accu <- airyards_accu %>%
+  filter(passer %in% c("L.Jackson", "D.Watson", "J.Fields", "J.Burrow"))
+```
+
+```{r}
+ggplot(data = airyards_accu, aes(x = air_yards, y = total_pct)) +
+  geom_smooth(se = FALSE, aes(color = posteam)) +
+  nflplotR::scale_color_nfl(type = "primary") +
+  scale_x_continuous(breaks = scales::pretty_breaks()) +
+  scale_y_continuous(breaks = scales::pretty_breaks(),
+                     labels = scales::label_percent()) +
+  facet_wrap(vars(passer), scales = "free_y") +
+  xlab("Air Yards") +
+  ylab("Total % of Catchable Attempts") +
+  labs(title = "**Total % of Catchable Attempts Based on Air Yards**",
+       subtitle = "*Minimum 100 Attempts  |  Through Week 5 of 2023 Season*",
+       caption = "*Introduction to NFL Analytics With R*<br>**Bradley J. Congelio**") +
+  nfl_analytics_theme()
+```
+
