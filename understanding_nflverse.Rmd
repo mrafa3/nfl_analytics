@@ -100,8 +100,6 @@ roster_2024 <- nflreadr::load_rosters(2024) %>%
  
   
 Some of these statistics won't have any meaning summed (or possibly by taking an average), so I'll dig into each one to get clearer on that.
-  
-This looks like a good article on [EPA](https://bestballstats.com/expected-points-added-a-full-explanation/#:~:text=Expected%20Points%20Added%20(EPA)%20is,evaluate%20team%20and%20player%20performance.).
 
 # Adjusted net yards per passing attempt 
 
