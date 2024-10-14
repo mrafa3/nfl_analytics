@@ -42,11 +42,9 @@ nfl_analytics_theme <- function(..., base_size = 12) {
 }
 ```
 
-
 ```{r teams, include=TRUE}
 teams <- nflreadr::load_teams()
 ```
-
 
 
 This looks like a good article on [EPA](https://bestballstats.com/expected-points-added-a-full-explanation/#:~:text=Expected%20Points%20Added%20(EPA)%20is,evaluate%20team%20and%20player%20performance.).
@@ -107,6 +105,11 @@ df_team_epa %>%
                      labels = scales::comma_format()) +
   scale_y_continuous(breaks = scales::pretty_breaks(),
                      labels = scales::comma_format()) +
+  labs(x='Average Offensive EPA',
+       y='Average Defensive EPA',
+       caption='Source: nflreadr:: package') + 
+  ggtitle('**Average Expected Points Added**: Offense vs. Defense',
+          subtitle = '2024 season') + 
   nfl_analytics_theme() + 
   theme(legend.position = 'none')
 ```
