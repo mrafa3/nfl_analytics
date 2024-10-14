@@ -100,6 +100,8 @@ roster_2024 <- nflreadr::load_rosters(2024) %>%
  
   
 Some of these statistics won't have any meaning summed (or possibly by taking an average), so I'll dig into each one to get clearer on that.
+  
+
 
 # Adjusted net yards per passing attempt 
 

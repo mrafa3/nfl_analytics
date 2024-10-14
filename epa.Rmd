@@ -10,6 +10,7 @@ library(gt)
 library(ggtext)
 library(ggrepel)
 library(patchwork)
+library(ggimage)
 ```
 
 ```{r nfl_analytics_theme, include=TRUE}
@@ -49,4 +50,83 @@ teams <- nflreadr::load_teams()
 
 
 This looks like a good article on [EPA](https://bestballstats.com/expected-points-added-a-full-explanation/#:~:text=Expected%20Points%20Added%20(EPA)%20is,evaluate%20team%20and%20player%20performance.).
+
+
+```{r play_by_play_2024, include=TRUE}
+play_by_play_2024 <- load_pbp(seasons=most_recent_season())
+```
+
+# Offensive EPA 
+
+```{r}
+(team_offensive_epa <- play_by_play_2024 %>% 
+  group_by(posteam) %>% 
+  filter(!is.na(posteam)) %>% 
+  summarise(avg_offensive_epa = mean(epa, na.rm = TRUE),
+            .groups = 'drop') %>% 
+  rename(team = posteam))
+```
+
+```{r}
+(team_defensive_epa <- play_by_play_2024 %>% 
+  group_by(defteam) %>% 
+  filter(!is.na(posteam)) %>% 
+  summarise(avg_defensive_epa = mean(epa, na.rm = TRUE),
+            .groups = 'drop') %>% 
+  rename(team = defteam))
+```
+
+```{r}
+(df_team_epa <- team_offensive_epa %>% 
+  left_join(x=.,
+            y=team_defensive_epa,
+            by='team') %>% 
+  left_join(x=.,
+            y=teams,
+            by=c('team' = 'team_abbr')))
+```
+
+
+What's the combined record of teams in each quadrant?
+
+```{r}
+df_team_epa %>% 
+  ggplot(.,
+         aes(x=avg_offensive_epa,
+             y=avg_defensive_epa,
+             alpha=if_else(team == 'PIT', 'PIT', 'Other'))) + 
+  # geom_point(color=df_team_epa$team_color, size=3.5) + 
+  geom_image(aes(image = team_logo_wikipedia), size=.1) +
+  geom_hline(yintercept = 0,
+             color = "black", size = 0.8, linetype = "dashed") +
+  geom_vline(xintercept = 0,
+             color = "black", size = 0.8, linetype = "dashed") +
+  scale_alpha_manual(values = c('PIT' = 1,
+                                'Other' = .2)) + 
+  scale_x_continuous(breaks = scales::pretty_breaks(),
+                     labels = scales::comma_format()) +
+  scale_y_continuous(breaks = scales::pretty_breaks(),
+                     labels = scales::comma_format()) +
+  nfl_analytics_theme() + 
+  theme(legend.position = 'none')
+```
+
+```{r}
+(df_team_epa <- df_team_epa %>% 
+mutate(epa_quadrant = if_else(avg_defensive_epa > 0 & avg_offensive_epa < 0, 'Quad1',
+                      if_else(avg_defensive_epa > 0 & avg_offensive_epa > 0, 'Quad2',
+                      if_else(avg_defensive_epa < 0 & avg_offensive_epa < 0, 'Quad3', 'Quad4')))))
+```
+
+```{r}
+seasons <- nflreadr::load_schedules(seasons = 2024)
+```
+
+
+```{r}
+play_by_play_2024 %>% 
+  filter(defteam == 'PIT') %>% 
+  select(posteam, defteam, home_team, contains('epa'), everything()) %>% 
+  arrange(epa)
+```
 
