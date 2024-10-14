@@ -71,6 +71,25 @@ snap_counts %>%
   nfl_analytics_theme()
 ```
 
+## Roman Wilson 
+
+```{r}
+snap_counts %>% 
+  filter(player == 'Roman Wilson') %>% 
+  ggplot(.,
+         aes(x=week,
+             y=offense_snaps)) + 
+  geom_col(fill='#FFB612') + 
+  geom_text(aes(label = paste(100*offense_pct, '%', sep='')), 
+            color='black', family='Roboto', fontface='bold', size=5) + 
+  ggtitle('**Roman Wilson** week-to-week snap counts: 2024 NFL Season') + 
+  labs(y='# of Offensive Snaps Played',
+       x='Week') + 
+  scale_y_continuous(labels = scales::percent) + 
+  nfl_analytics_theme()
+```
+
+
 # Personnel groupings in 2024
 
 ```{r personnel, include=TRUE}
