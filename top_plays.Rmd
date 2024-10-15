@@ -54,21 +54,24 @@ play_by_play_2024 <- nflreadr::load_pbp(seasons = most_recent_season())
 
 ```{r}
 play_by_play_2024 %>% 
-  filter(game_id == '2024_06_JAX_CHI') %>% 
-  # filter(game_id == '2024_06_PIT_LV') %>% 
+  # filter(game_id == '2024_06_JAX_CHI') %>% 
+         # filtering out garbage time (Congelio book recommends using 95/5 split if you're going to remove garbage time at all)
+  filter(wp > .05 & wp < .95) %>%
+  filter(game_id == '2024_06_PIT_LV') %>%
   mutate(down_dist = paste(down, ydstogo, sep = '-'),
          score = paste(total_away_score, total_home_score, sep = '-'), 
          play_type = case_when(play_type == 'pass' ~ 'Pass',
                                play_type == 'run' ~ 'Run',
                                play_type == 'field_goal' ~ 'FG',
-                               TRUE ~ 'Other'), 
+                               play_type == 'punt' ~ 'Punt',
+                               TRUE ~ 'Other'),
          abs_epa = abs(epa),
          wp_chg = abs(lead(wp) - wp)) %>% 
   # mutate(,
   #        epa_chg = abs(lead(epa) - epa)) %>% 
   arrange(-abs_epa) %>% 
   # select(contains('yds'))
-  select(posteam, qtr, time, down_dist, score, play_type,
+  select(wp, posteam, qtr, time, down_dist, score, play_type,
          desc, ydsnet, wp_chg, epa)
   select(epa, abs_epa, desc, everything())
 ```
