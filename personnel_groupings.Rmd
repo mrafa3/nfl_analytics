@@ -85,7 +85,8 @@ snap_counts %>%
   ggtitle('**Roman Wilson** week-to-week snap counts: 2024 NFL Season') + 
   labs(y='# of Offensive Snaps Played',
        x='Week') + 
-  scale_y_continuous(labels = scales::percent) + 
+  scale_x_continuous(limits = c(0,7)) + 
+  # scale_y_continuous(labels = scales::percent) + 
   nfl_analytics_theme()
 ```
 
@@ -93,7 +94,7 @@ snap_counts %>%
 # Personnel groupings in 2024
 
 ```{r personnel, include=TRUE}
-(personnel <- nflreadr::load_participation(seasons = 2024))
+(personnel <- nflreadr::load_participation(seasons = 2023, include_pbp = TRUE))
 ```
 
 ```{r}
