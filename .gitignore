@@ -4,4 +4,5 @@
 .Ruserdata
 /output
 .Rproject
-.nb.html
+*.nb.html
+.DS_Store
