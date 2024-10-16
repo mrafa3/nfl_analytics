@@ -7,6 +7,7 @@ output: html_notebook
 library(tidyverse)
 library(nflverse)
 library(gt)
+library(gtExtras)
 library(ggtext)
 library(ggrepel)
 library(patchwork)
@@ -52,12 +53,22 @@ teams <- nflreadr::load_teams()
 play_by_play_2024 <- nflreadr::load_pbp(seasons = most_recent_season())
 ```
 
-```{r}
-play_by_play_2024 %>% 
-  # filter(game_id == '2024_06_JAX_CHI') %>% 
-         # filtering out garbage time (Congelio book recommends using 95/5 split if you're going to remove garbage time at all)
-  filter(wp > .05 & wp < .95) %>%
-  filter(game_id == '2024_06_PIT_LV') %>%
+```{r max_min_epa, include=TRUE, echo=FALSE}
+max_epa <- play_by_play_2024 %>% 
+  summarise(max(epa, na.rm = TRUE)) %>% 
+  pull()
+
+min_epa <- play_by_play_2024 %>% 
+  summarise(min(epa, na.rm = TRUE)) %>% 
+  pull()
+```
+
+```{r top_plays, include=TRUE}
+top_plays <- play_by_play_2024 %>% 
+  filter(str_detect(game_id, 'PIT')) %>% 
+  left_join(x=.,
+            y=teams,
+            by=c('posteam' = 'team_abbr')) %>% 
   mutate(down_dist = paste(down, ydstogo, sep = '-'),
          score = paste(total_away_score, total_home_score, sep = '-'), 
          play_type = case_when(play_type == 'pass' ~ 'Pass',
@@ -67,12 +78,90 @@ play_by_play_2024 %>%
                                TRUE ~ 'Other'),
          abs_epa = abs(epa),
          wp_chg = abs(lead(wp) - wp)) %>% 
-  # mutate(,
-  #        epa_chg = abs(lead(epa) - epa)) %>% 
-  arrange(-abs_epa) %>% 
-  # select(contains('yds'))
-  select(wp, posteam, qtr, time, down_dist, score, play_type,
-         desc, ydsnet, wp_chg, epa)
-  select(epa, abs_epa, desc, everything())
+  group_by(game_id) %>% 
+  arrange(-abs_epa) %>%
+  select(game_id, team_wordmark, qtr, time, down_dist, yrdln, score, play_type,
+         desc, epa, wp, wp_chg) %>%
+  # filtering out garbage time (Congelio book recommends using 95/5 split if you're going to remove garbage time at all)
+  filter(wp > .05 & wp < .95) %>% 
+  slice(1:10) %>% 
+  ungroup()
+```
+
+
+```{r}
+top_plays %>% 
+  distinct(game_id)
+```
+
+```{r gt_top_plays, include=TRUE}
+top_plays %>% 
+  # choose the game
+  filter(game_id == '2024_06_PIT_LV') %>% 
+  select(-game_id) %>% 
+  gt() %>% 
+  gt_img_rows(columns = team_wordmark) %>% 
+  #rename columns
+  cols_label(team_wordmark = 'Possessing team',
+             qtr = 'Qtr',
+             time = 'Time',
+             down_dist = 'Down-Dist',
+             yrdln = 'Field Pos',
+             play_type = 'Play',
+             desc = 'Description',
+             # ydsnet = 'Yards',
+             wp = 'Win Prob',
+             wp_chg = 'Win Prob Change') %>% 
+  #add table title
+  tab_header(title = md("**Biggest Plays of the Game**"),
+             subtitle = md("Plays ranked by absolute value of Expected Points Added<br>Excluding garbage time where win probabilty is .05 < x < .95")) %>% 
+  tab_source_note(source_note = 'Replicating work done by Kevin Cole in the Unexpected Points Substack newsletter') %>% 
+  fmt_number(columns = epa,
+             decimals = 2) %>% 
+  fmt_percent(columns = c(wp, wp_chg),
+              decimals = 1) %>% 
+  #apply new style to all column headers
+  tab_style(
+    locations = cells_column_labels(columns = everything()),
+    style = list(
+      #thick border
+      cell_borders(sides = "bottom", weight = px(3)),
+      #make text bold
+      cell_text(weight = "bold")
+    )
+  ) %>% 
+  #apply different style to title
+  tab_style(locations = cells_title(groups = "title"),
+            style = list(
+              cell_text(weight = "bold", size = 24)
+            )) %>% 
+  data_color(
+    columns = epa,
+    colors = scales::col_numeric(
+      palette = c("red", "white", "darkgreen"),
+      domain = c(min_epa, max_epa)
+    )) %>% 
+  opt_all_caps() %>% 
+  opt_table_font(
+    font = list(
+      google_font("Roboto Condensed"),
+      default_fonts()
+    )
+  ) %>% 
+  tab_options(
+    #remove border between column headers and title
+    column_labels.border.top.width = px(5),
+    column_labels.border.top.color = "transparent",
+    #remove border around the table
+    table.border.top.color = "transparent",
+    table.border.bottom.color = "transparent",
+    #adjust font sizes and alignment
+    heading.title.font.size = px(60),
+    heading.subtitle.font.size = px(16),
+    table.font.size = px(16),
+    source_notes.font.size = px(12),
+    heading.align = "center"
+  ) %>% 
+  gtsave('.//output/test.html')
 ```
 
