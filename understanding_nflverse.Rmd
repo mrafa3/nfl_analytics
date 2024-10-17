@@ -513,6 +513,48 @@ tom_brady %>%
   arrange(-avg_epa)
 ```
 
+3.6.4 Exercise 4
+Create a data frame titled made_field_goals and find, between the 2000 and 2022 season, the number of field goal attempts and percentage made on all kicks greater than 40-yards in distance.
+
+```{r exercise3_4, include=TRUE}
+made_field_goals <- load_pbp(seasons = 2000:2022) %>% 
+  filter(season_type == 'REG')
+
+made_field_goals %>% 
+  filter(play_type == 'field_goal',
+         kick_distance >= 40) %>% 
+  select(contains('field_goal')) %>% 
+  mutate(field_goal_result = if_else(field_goal_result == 'made', 1, 0)) %>% 
+  summarise(ttl_made = sum(field_goal_result),
+            ttl_attempt = sum(field_goal_attempt)) %>% 
+  mutate(fg_pct = ttl_made / ttl_attempt)
+
+# made_field_goals %>% 
+#   filter(play_type == "field_goal" & kick_distance >= 40) %>%
+#   summarize(
+#     total = n(),
+#     total_made = sum(field_goal_result == "made"),
+#     percent = total_made / total)
+```
+
+3.6.5 Exercise 5
+On December 11 of the 2005 season, Pittsburgh’s Jerome Bettis trucked Bears linebacker Brian Urlacher. You can view the play here: [Bettis Trucks Urlacher](https://www.youtube.com/watch?v=u0mtG-8DWYk). Using the load_pbp function, find this specific play (using the video for contextual clues). After, determine how much win probability this individual play added (that is: the differnece between home_wp and home_wp_post.
+
+```{r exercise3_5, include=TRUE}
+pbp_2005 <- load_pbp(seasons = 2005)
+
+# pbp_2005 %>% 
+#   filter(str_detect(game_id, 'PIT')) %>% 
+#   distinct(game_id)
+# week 14
+
+pbp_2005 %>% 
+  filter(game_id == '2005_14_CHI_PIT',
+         # the play results in a home score of 20
+         total_home_score == 20) %>% 
+  mutate(wp_change = home_wp_post - home_wp) %>% 
+  select(wp_change, everything())
+```
 
 
 # Boneyard 
