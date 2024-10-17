@@ -438,6 +438,81 @@ pbp_2022 %>%
 ```
 
 
+# Chapter 3 exercises 
+
+3.6.1 Exercise 1 
+Load data from the 2010 to 2022 regular seasons into a data frame titled pbp.
+In a data frame titled rushing_success, determine how many rushing attempts each offensive team had on 1st down.
+Determine how many of those attempts resulted in a positive EPA (success).
+Calculate the percentage of the results into a column titled success_pct.
+Arrange the results in descending order by success_pct.
+
+```{r exercise3_1, include=TRUE}
+pbp <- load_pbp(seasons = 2010:2022) %>% 
+  filter(season_type == 'REG')
+
+rushing_success <- pbp %>% 
+  filter(down == 1,
+         play_type == 'run') %>% 
+  mutate(first_down_success = if_else(epa > 0, 'success', 'failure')) %>% 
+  group_by(posteam,
+           first_down_success) %>% 
+  summarise(count_1st_down_runs = n(),
+            .groups = 'drop') %>% 
+  pivot_wider(names_from = first_down_success, values_from = count_1st_down_runs) %>% 
+  mutate(success_pct = success / (success + failure)) %>% 
+  arrange(-success_pct)
+
+# Congelio solution:
+# pbp %>%
+#   group_by(posteam) %>%
+#   filter(down == 1 & play_type == "run") %>%
+#   summarize(total_attempts = n(),
+#             total_success = sum(success == 1, na.rm = TRUE),
+#             success_pct = total_success / total_attempts) %>%
+#   arrange(-success_pct)
+```
+
+3.6.2 Exercise 2
+
+Load data from the 2022 regular season into a data frame titled pbp_2022.
+In a data frame titled qb_short_third, determine how many 3rd down passing attempts each QB had.
+Determine the number of times the QB’s air yards was less than the required yards to go.
+In a column titled ay_percent, calculate the percentage of these results.
+Filter the results to those QBs with 100 or more attempts.
+Arrange the results in descending order by ay_percent.
+
+```{r exercise3_2, include=TRUE}
+pbp_2022 <- load_pbp(seasons = 2022) %>% 
+  filter(season_type == 'REG')
+
+qb_short_third <- pbp_2022 %>%
+  filter(complete_pass == 1 | incomplete_pass == 1 | interception == 1, !is.na(down)) %>%
+  filter(down == 3 & !is.na(air_yards)) %>%
+  group_by(passer) %>%
+  summarize(total = n(),
+            airyards_ydtogo = sum(air_yards < ydstogo, na.rm = TRUE),
+            ay_percent = airyards_ydtogo / total) %>%
+  filter(total >= 100) %>%
+  arrange(-ay_percent)
+```
+
+3.6.3 Exercise 3
+
+Tom Brady had a long and storied career, serving as a full-time started in the NFL from 2001 to 2022. The qb_epa metric gives a quarterback credit for EPA up to the point where a receivers lost a fumble after a completed catch. For this question, create data frame titled tom_brady and find Brady’s average qb_epa per season, from 2001 to 2022. After, arrange in descending order by his average QB EPA.
+
+```{r exercise3_3, include=TRUE}
+tom_brady <- load_pbp(seasons = 2001:2022) %>% 
+  filter(season_type == 'REG',
+         passer == 'T.Brady')
+
+tom_brady %>% 
+  group_by(season) %>%
+  summarise(avg_epa = mean(qb_epa, na.rm = TRUE),
+            .groups = 'drop') %>% 
+  arrange(-avg_epa)
+```
+
 
 
 # Boneyard 

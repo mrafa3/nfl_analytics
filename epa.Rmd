@@ -56,7 +56,7 @@ play_by_play_2024 <- load_pbp(seasons=most_recent_season())
 
 # Offensive EPA 
 
-```{r}
+```{r team_offensive_epa, include=TRUE}
 (team_offensive_epa <- play_by_play_2024 %>% 
   group_by(posteam) %>% 
   filter(!is.na(posteam)) %>% 
@@ -65,7 +65,7 @@ play_by_play_2024 <- load_pbp(seasons=most_recent_season())
   rename(team = posteam))
 ```
 
-```{r}
+```{r team_defensive_epa, include=TRUE}
 (team_defensive_epa <- play_by_play_2024 %>% 
   group_by(defteam) %>% 
   filter(!is.na(posteam)) %>% 
@@ -74,7 +74,7 @@ play_by_play_2024 <- load_pbp(seasons=most_recent_season())
   rename(team = defteam))
 ```
 
-```{r}
+```{r df_team_epa, include=TRUE}
 (df_team_epa <- team_offensive_epa %>% 
   left_join(x=.,
             y=team_defensive_epa,
@@ -121,15 +121,47 @@ mutate(epa_quadrant = if_else(avg_defensive_epa > 0 & avg_offensive_epa < 0, 'Qu
                       if_else(avg_defensive_epa < 0 & avg_offensive_epa < 0, 'Quad3', 'Quad4')))))
 ```
 
-```{r}
-seasons <- nflreadr::load_schedules(seasons = 2024)
+```{r seasons, include=TRUE}
+seasons <- nflreadr::load_schedules(seasons = 2024) %>% 
+  mutate(winner = if_else(home_score > away_score, home_team,
+                  if_else(home_score < away_score, away_team, 'Tie')),
+         loser = if_else(home_score > away_score, away_team,
+                 if_else(home_score < away_score, home_team, 'Tie')))
+
+seasons %>% 
+  summarise(wins = count(winner),
+            losses = count(loser))
+  select(winner, loser, everything())
 ```
 
-
-```{r}
+```{r defensive_epa_runpass, include=TRUE}
 play_by_play_2024 %>% 
-  filter(defteam == 'PIT') %>% 
-  select(posteam, defteam, home_team, contains('epa'), everything()) %>% 
-  arrange(epa)
+  filter(play_type %in% c('run', 'pass')) %>% 
+  group_by(defteam, play_type) %>% 
+  summarise(avg_epa = mean(epa, na.rm = TRUE),
+            .groups = 'drop') %>% 
+  pivot_wider(names_from = play_type, values_from = avg_epa) %>% 
+  left_join(x=.,
+            y=teams,
+            by=c('defteam' = 'team_abbr')) %>% 
+    ggplot(.,
+         aes(x=run,
+             y=pass)) + 
+  geom_image(aes(image = team_logo_wikipedia), size=.1) +
+  geom_hline(yintercept = 0,
+             color = "black", size = 0.8, linetype = "dashed") +
+  geom_vline(xintercept = 0,
+             color = "black", size = 0.8, linetype = "dashed") +
+  scale_x_continuous(breaks = scales::pretty_breaks(),
+                     labels = scales::comma_format()) +
+  scale_y_continuous(breaks = scales::pretty_breaks(),
+                     labels = scales::comma_format()) +
+  labs(x='Against the Run',
+       y='Against the Pass',
+       caption='Source: nflreadr:: package') + 
+  ggtitle('**Average Defensive Expected Points Added**: Run vs. Pass',
+          subtitle = '2024 season') + 
+  nfl_analytics_theme() + 
+  theme(legend.position = 'none')
 ```
 
