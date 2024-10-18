@@ -9,8 +9,11 @@ library(tidyverse)
 library(nflverse)
 library(vroom)
 library(ggtext)
+library(ggfx) # <1>
 library(gt)
 ```
+
+1. For `with_outer_glow()` function to render names on bar charts nicely.
 
 ```{r player_stats, include=TRUE}
 player_stats <- nflreadr::load_player_stats(seasons = most_recent_season(),
@@ -603,6 +606,12 @@ play_action_data %>%
   ggplot(.,
          aes(x=yds,
              y=pa_yds)) + 
+  # using nflplotR::geom_mean_lines() simplifies the code -- don't need to use geom_hline() and geom_vline()
+  # note that nflplotR::geom_median_lines() is also available
+  # layering the geom_mean_lines() first so that points and labels are rendered on top of these lines
+  nflplotR::geom_mean_lines(aes(x0=yds,
+                                y0=pa_yds),
+                            linewidth = .8, color = 'darkgray', linetype = 'dashed') +
   geom_point(shape=21,
              color=play_action_data$team_color2,
              fill=play_action_data$team_color,
@@ -612,6 +621,11 @@ play_action_data %>%
                   size = 3,
                   family = "Roboto",
                   fontface = "bold") + 
+  labs(x = "Non-Play Action Yards",
+       y = "Play Action Yards",
+       title = "Cumulative Passing Yards",
+       subtitle = "Non-Play Action vs. Play Action",
+       caption = "*Introduction to NFL Analytics with R*<br>**Bradley J. Congelio**") + 
   scale_x_continuous(breaks = scales::pretty_breaks(n = 6),
                      labels = scales::comma) +
   scale_y_continuous(breaks = scales::pretty_breaks(n = 6),
@@ -620,6 +634,40 @@ play_action_data %>%
   # nflplotR::scale_color_nfl(type='primary')
 ```
 
+
+```{r qb_thirddown_data, include=TRUE}
+qb_thirddown_data <- vroom("http://nfl-book.bradcongelio.com/qb-3rd-data")
+```
+
+```{r}
+qb_thirddown_data %>% 
+  ggplot(., 
+         aes(x = reorder(passer_id, -qb_agg_pct), 
+             y = qb_agg_pct)) +
+  geom_col(fill = qb_thirddown_data$team_color,
+           color = qb_thirddown_data$team_color2) + 
+  with_outer_glow(geom_text(aes(label = passer),
+                            position = position_stack(vjust = .98),
+                            angle = 90, hjust = .98, color = "white",
+                            family = "Roboto",
+                            fontface = "bold", size = 8),
+                  sigma = 6, expand = 1, color = "black") +
+  scale_y_continuous(breaks = scales::pretty_breaks(),
+                     labels = scales::percent_format(),
+                     expand = c(0,0)) +
+  labs(x='',
+       y='QB Agressiveness on Third Down',
+       title = "**QB Aggressiveness on Third Down**",
+       subtitle = "*Numbers of Times Air Yards >= Yards To Go*",
+       caption = "*An Introduction to NFL Analytics with R*<br>
+       **Brad J. Congelio**") + 
+  nfl_analytics_theme() + 
+  # adds headshots -- see the note below from the book
+  theme(axis.text.x = nflplotR::element_nfl_headshot(size = 1))
+```
+
+
+> To add player headshot to the bottom of each column, we will use the element_nfl_headshot function from the nflplotR package. Inside the theme() option, we use element_nfl_headshot() to replace the axis_text.x(). It is important to remember to use passer_id on the x-axis (rather than passer_name or something similar). The nflplotR package uses the passer_id to automatically pull the correct headshot for each player. Without including passer_id in the x-axis, the resulting headshots will be the “blank” NFL picture.
 
 # Boneyard 
 
