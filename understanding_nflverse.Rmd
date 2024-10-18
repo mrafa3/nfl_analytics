@@ -7,6 +7,7 @@ output: html_notebook
 ```{r libraries, include=TRUE, warning=FALSE, message=FALSE}
 library(tidyverse)
 library(nflverse)
+library(vroom)
 library(gt)
 ```
 
@@ -554,6 +555,30 @@ pbp_2005 %>%
          total_home_score == 20) %>% 
   mutate(wp_change = home_wp_post - home_wp) %>% 
   select(wp_change, everything())
+```
+
+# Chapter 4: Visualization 
+
+```{r sis_play_action_data, include=TRUE}
+play_action_data <- vroom("http://nfl-book.bradcongelio.com/pa-data")
+
+play_action_data <- play_action_data %>% 
+  left_join(x=.,
+            y=teams,
+            by=c('team' = 'team_nick'))
+```
+
+```{r ggplot_play_action, include=TRUE}
+play_action_data %>% 
+  ggplot(.,
+         aes(x=yds,
+             y=pa_yds)) + 
+  geom_point(shape=21,
+             color=play_action_data$team_color2,
+             fill=play_action_data$team_color,
+             size=4.5) +
+  ggrepel::geom_text_repel(aes(label = player))
+  # nflplotR::scale_color_nfl(type='primary')
 ```
 
 
