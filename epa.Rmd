@@ -115,6 +115,68 @@ df_team_epa %>%
 ```
 
 ```{r}
+play_by_play_2024 %>% 
+  filter(!is.na(posteam)) %>% 
+  group_by(posteam) %>% 
+  summarise(avg_epa_per_play = mean(epa, na.rm = TRUE),
+            .groups = 'drop') %>% 
+  left_join(x=.,
+            y=teams,
+            by=c('posteam' = 'team_abbr')) %>% 
+  ggplot(.,
+         aes(x = avg_epa_per_play,
+             y = reorder(posteam, avg_epa_per_play))) +
+  geom_col(aes(fill = if_else(avg_epa_per_play >= 0,
+                              "#2c7bb6", "#d7181c")),
+           width = 0.2) +
+  geom_vline(xintercept = 0, color = "black") +
+  scale_fill_identity() +
+  geom_image(aes(image = team_logo_wikipedia),
+             asp = 16/9, size = .035) +
+  labs(x='EPA per Play',
+       y='',
+       title = "**Offensive Expected Points Added per Play**",
+       subtitle = "*2024 Regular Season*",
+       caption = "*Inspired by An Introduction to NFL Analytics with R*") + 
+  scale_x_continuous(breaks = scales::pretty_breaks(n = 6)) +
+  scale_y_discrete(expand = c(.05, 0)) +
+  nfl_analytics_theme() +
+  theme(axis.text.y = element_blank())
+```
+
+
+```{r}
+play_by_play_2024 %>% 
+  filter(!is.na(posteam)) %>% 
+  group_by(defteam) %>% 
+  summarise(avg_epa_per_play = mean(epa, na.rm = TRUE),
+            .groups = 'drop') %>% 
+  left_join(x=.,
+            y=teams,
+            by=c('defteam' = 'team_abbr')) %>% 
+  ggplot(.,
+         aes(x = avg_epa_per_play,
+             y = reorder(defteam, -avg_epa_per_play))) +
+  geom_col(aes(fill = if_else(avg_epa_per_play >= 0,
+                              "#d7181c", "#2c7bb6")),
+           width = 0.2) +
+  geom_vline(xintercept = 0, color = "black") +
+  scale_fill_identity() +
+  geom_image(aes(image = team_logo_wikipedia),
+             asp = 16/9, size = .035) +
+  labs(x='EPA per Play',
+       y='',
+       title = "**Defensive Expected Points Added per Play**",
+       subtitle = "*2024 Regular Season*",
+       caption = "*Inspired by An Introduction to NFL Analytics with R*") + 
+  scale_x_continuous(breaks = scales::pretty_breaks(n = 6)) +
+  scale_y_discrete(expand = c(.05, 0)) +
+  nfl_analytics_theme() +
+  theme(axis.text.y = element_blank())
+```
+
+
+```{r}
 (df_team_epa <- df_team_epa %>% 
 mutate(epa_quadrant = if_else(avg_defensive_epa > 0 & avg_offensive_epa < 0, 'Quad1',
                       if_else(avg_defensive_epa > 0 & avg_offensive_epa > 0, 'Quad2',
