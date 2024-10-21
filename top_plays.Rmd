@@ -44,7 +44,7 @@ nfl_analytics_theme <- function(..., base_size = 12) {
 ```
 
 ```{r teams, include=TRUE}
-teams <- nflreadr::load_teams()
+teams <- nflreadr::load_teams(current = TRUE)
 ```
 
 # Data 
@@ -97,7 +97,7 @@ top_plays %>%
 ```{r gt_top_plays, include=TRUE}
 top_plays %>% 
   # choose the game
-  filter(game_id == '2024_06_PIT_LV') %>% 
+  filter(game_id == '2024_07_NYJ_PIT') %>% 
   select(-game_id) %>% 
   gt() %>% 
   gt_img_rows(columns = team_wordmark) %>% 
@@ -137,7 +137,7 @@ top_plays %>%
             )) %>% 
   data_color(
     columns = epa,
-    colors = scales::col_numeric(
+    fn = scales::col_numeric(
       palette = c("red", "white", "darkgreen"),
       domain = c(min_epa, max_epa)
     )) %>% 
