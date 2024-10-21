@@ -50,4 +50,12 @@ nfl_analytics_theme <- function(..., base_size = 12) {
 teams <- nflreadr::load_teams(current = TRUE)
 ```
 
+```{r}
+df_aqe <- read_sheet('https://docs.google.com/spreadsheets/d/1ktlf_ekms7aI6r0tF_HeX0zaxps-bHWYsgglUReC558/edit?gid=1212845642#gid=1212845642',
+           sheet = 'Adjusted Quarterback Efficiency')
+
+df_aqe %>% 
+  filter(plays > 100,
+         season == 2024)
+```
 
