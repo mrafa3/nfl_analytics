@@ -47,10 +47,44 @@ nfl_analytics_theme <- function(..., base_size = 12) {
 teams <- nflreadr::load_teams(current = TRUE)
 ```
 
+```{r player_ids, include=TRUE}
+player_ids <- nflreadr::load_ff_playerids() %>% 
+  filter(db_season == 2024) %>% 
+  select(gsis_id, pfr_id) %>% 
+  rename(player_id = gsis_id,
+         pfr_player_id = pfr_id) %>% 
+  filter(complete.cases(.))
+# nflreadr::dictionary_ff_playerids
+```
+
 # Data 
 
 ```{r play_by_play_2024, include=TRUE}
 play_by_play_2024 <- nflreadr::load_pbp(seasons = most_recent_season())
+```
+
+```{r get_pfr_data, include=TRUE}
+pfr_stats_pass <- nflreadr::load_pfr_advstats(seasons = 2024,
+                                              stat_type = 'pass',
+                                              summary_level = "week") %>% 
+  left_join(x=.,
+            y=player_ids,
+            by='pfr_player_id')
+
+pfr_stats_rec <- nflreadr::load_pfr_advstats(seasons = 2024,
+                                              stat_type = 'rec',
+                                              summary_level = "week") %>% 
+  left_join(x=.,
+            y=player_ids,
+            by='pfr_player_id')
+
+
+pfr_stats_rush <- nflreadr::load_pfr_advstats(seasons = 2024,
+                                              stat_type = 'rush',
+                                              summary_level = "week") %>% 
+  left_join(x=.,
+            y=player_ids,
+            by='pfr_player_id')
 ```
 
 ```{r max_min_epa, include=TRUE, echo=FALSE}
@@ -167,12 +201,6 @@ top_plays %>%
 
 ```{r}
 play_by_play_2024 %>% 
-  filter(epa == min_epa)
-```
-
-
-```{r}
-play_by_play_2024 %>% 
   filter(game_id == '2024_07_NYJ_PIT',
          play_type %in% c('run', 'pass')) %>% 
   group_by(posteam, play_type) %>% 
@@ -186,23 +214,28 @@ play_by_play_2024 %>%
 play_by_play_2024 %>% 
   filter(posteam == 'PIT',
          !is.na(receiver_player_name)) %>% 
-  group_by(game_id, posteam, receiver_player_name) %>%
-  # group_by(posteam, receiver_player_name) %>% 
+  group_by(game_id, posteam, receiver_player_id, receiver_player_name) %>%
   summarise(epa = sum(epa, na.rm = TRUE),
             count_targets = n(),
             catches = sum(complete_pass, na.rm = TRUE), 
             touchdowns = sum(touchdown, na.rm = TRUE),
             yards_receiving = sum(receiving_yards, na.rm = TRUE), 
-            long = ifelse(is.infinite(max(receiving_yards, na.rm = TRUE)),
-                              0,
-                              max(receiving_yards, na.rm = TRUE)),
+            # long = if_else(is.infinite(max(receiving_yards, na.rm = TRUE)),
+            #                   0,
+            #                   max(receiving_yards, na.rm = TRUE)),
             first_down_catch = sum(first_down_pass, na.rm = TRUE), 
             .groups = 'drop') %>% 
   mutate(epa_per_target = epa / count_targets,
          yards_per_catch = if_else(yards_receiving == 0, 0, round(yards_receiving / catches, 1))) %>% 
+  left_join(x=.,
+            y=pfr_stats_rec %>% select(game_id, player_id, contains('receiving')),
+            by=c('game_id' = 'game_id', 'receiver_player_id' = 'player_id')) %>% 
   # filter(game_id == '2024_07_NYJ_PIT') %>% 
   arrange(-epa)
 ```
+
+
+
 
 ```{r}
 play_by_play_2024 %>% 
@@ -212,7 +245,7 @@ play_by_play_2024 %>%
   # select(contains('complet'))
   # filter(game_id == '2024_07_NYJ_PIT')
   # select(contains('epa'))
-  group_by(game_id, posteam, passer) %>%
+  group_by(game_id, posteam, passer_player_id, passer) %>%
   # group_by(posteam, passer) %>% 
   summarise(epa = sum(epa, na.rm = TRUE),
             air_epa = sum(air_epa, na.rm = TRUE),
@@ -232,9 +265,26 @@ play_by_play_2024 %>%
             #                   max(receiving_yards, na.rm = TRUE)),
             # first_down_catch = sum(first_down_pass, na.rm = TRUE), 
             .groups = 'drop') %>% 
-  mutate(attempts = incomplete_pass + complete_pass)
-         yards_per_catch = if_else(yards_receiving == 0, 0, round(yards_receiving / catches, 1))) %>% 
+  mutate(attempts = incomplete_pass + complete_pass) %>% 
+         # yards_per_catch = if_else(yards_receiving == 0, 0, round(yards_receiving / catches, 1))) %>% 
+  left_join(x=.,
+            y=pfr_stats_pass,
+            by=c('game_id' = 'game_id', 'passer_player_id' = 'player_id')) %>% 
   # filter(game_id == '2024_07_NYJ_PIT') %>% 
   arrange(-epa)
+```
+
+
+
+
+
+```{r}
+
+
+pfr_stats_rec %>% 
+  # filter(str_detect(game_id, '06'))
+  filter(game_id == '2024_06_PIT_LV')
+
+dictionary_pfr_passing
 ```
 

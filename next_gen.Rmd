@@ -100,7 +100,7 @@ names(pfr_stats_pass)
 
 ```{r}
 pfr_stats_pass_filtered <- pfr_stats_pass %>% 
-  filter(pass_attempts >= 60)
+  filter(pass_attempts >= 25)
 ```
 
 
