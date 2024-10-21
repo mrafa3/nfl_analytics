@@ -711,7 +711,65 @@ The Unexpected Points Substack has an *Offensive Efficiency and Percentiles* tab
 
 ![Offensive Efficienty and Percentiles table from Unexpected Points Substack](images/offensive_efficiency.png)
 
+The table notes that the percentiles are based on 2018-2023 weekly results.
+
+```{r pbp_2018_2023, include=TRUE}
+pbp_2018_2023 <- nflreadr::load_pbp(seasons = 2018:2023) %>% 
+  filter(season_type == 'REG')
+```
+
+## Pass percentiles 
+
+```{r dropback_epa_2018_2023, include=TRUE}
+(dropback_epa_2018_2023 <- pbp_2018_2023 %>% 
+  filter(play_type == 'pass') %>% 
+  group_by(game_id, posteam) %>% 
+  summarise(mean_qb_epa = mean(qb_epa, na.rm = TRUE),
+            .groups = 'drop') %>% 
+  arrange(mean_qb_epa) %>% 
+  mutate(percentile = percent_rank(mean_qb_epa)))
+```
+
+```{r dropback_epa_2024_game, include=TRUE}
+(dropback_epa_2024_game <- play_by_play_2024 %>% 
+  filter(game_id == '2024_07_NYJ_PIT',
+         play_type == 'pass') %>% 
+  group_by(game_id, posteam) %>% 
+  summarise(mean_qb_epa = mean(qb_epa, na.rm = TRUE),
+            .groups = 'drop'))
 
 
+mean(dropback_epa_2018_2023$mean_qb_epa < dropback_epa_2024_game %>% filter(posteam == 'NYJ') %>% pull(mean_qb_epa))
+mean(dropback_epa_2018_2023$mean_qb_epa < dropback_epa_2024_game %>% filter(posteam == 'PIT') %>% pull(mean_qb_epa))
+```
 
+## Run percentiles 
+
+```{r rush_epa_2018_2023, include=TRUE}
+(rush_epa_2018_2023 <- pbp_2018_2023 %>% 
+  filter(play_type == 'run') %>% 
+  group_by(game_id, posteam) %>% 
+  summarise(mean_rush_epa = mean(epa, na.rm = TRUE),
+            .groups = 'drop') %>% 
+  arrange(mean_rush_epa) %>% 
+  mutate(percentile = percent_rank(mean_rush_epa)))
+```
+
+```{r rush_epa_2024_game, include=TRUE}
+(rush_epa_2024_game <- play_by_play_2024 %>% 
+  filter(game_id == '2024_07_NYJ_PIT',
+         play_type == 'run') %>% 
+  group_by(game_id, posteam) %>% 
+  summarise(mean_rush_epa = mean(epa, na.rm = TRUE),
+            .groups = 'drop'))
+
+
+mean(rush_epa_2018_2023$mean_rush_epa < rush_epa_2024_game %>% filter(posteam == 'NYJ') %>% pull(mean_rush_epa))
+mean(rush_epa_2018_2023$mean_rush_epa < rush_epa_2024_game %>% filter(posteam == 'PIT') %>% pull(mean_rush_epa))
+```
+
+To-do:
+
+*  I'm not replicating the results perfectly -- I think there's some additional nuance in the data that I'm not capturing. More here to look into.
+*  This workflow is not as easy as it could be. I'd like to be able to generate these for each game simply, and it's not there yet.
 
