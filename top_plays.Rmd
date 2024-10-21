@@ -18,7 +18,7 @@ library(ggimage)
 nfl_analytics_theme <- function(..., base_size = 12) {
   
   theme(
-    text = element_text(family = "Roboto",
+    text = element_text(family = "Lexend",
                         size = base_size,
                         color = "black"),
     axis.ticks = element_blank(),
@@ -161,10 +161,14 @@ top_plays %>%
     table.font.size = px(16),
     source_notes.font.size = px(12),
     heading.align = "center"
-  ) %>% 
-  gtsave('.//output/test.html')
+  )
+  # gtsave('.//output/test.html')
 ```
 
+```{r}
+play_by_play_2024 %>% 
+  filter(epa == min_epa)
+```
 
 
 ```{r}
@@ -176,5 +180,61 @@ play_by_play_2024 %>%
             avg_epa = round(mean(epa, na.rm = TRUE), 2),
             .groups = 'drop') %>% 
   pivot_wider(names_from = play_type, values_from = success_rate:avg_epa)
+```
+
+```{r}
+play_by_play_2024 %>% 
+  filter(posteam == 'PIT',
+         !is.na(receiver_player_name)) %>% 
+  group_by(game_id, posteam, receiver_player_name) %>%
+  # group_by(posteam, receiver_player_name) %>% 
+  summarise(epa = sum(epa, na.rm = TRUE),
+            count_targets = n(),
+            catches = sum(complete_pass, na.rm = TRUE), 
+            touchdowns = sum(touchdown, na.rm = TRUE),
+            yards_receiving = sum(receiving_yards, na.rm = TRUE), 
+            long = ifelse(is.infinite(max(receiving_yards, na.rm = TRUE)),
+                              0,
+                              max(receiving_yards, na.rm = TRUE)),
+            first_down_catch = sum(first_down_pass, na.rm = TRUE), 
+            .groups = 'drop') %>% 
+  mutate(epa_per_target = epa / count_targets,
+         yards_per_catch = if_else(yards_receiving == 0, 0, round(yards_receiving / catches, 1))) %>% 
+  # filter(game_id == '2024_07_NYJ_PIT') %>% 
+  arrange(-epa)
+```
+
+```{r}
+play_by_play_2024 %>% 
+  filter(posteam == 'PIT',
+         !is.na(passer),
+         play_type == 'pass') %>% 
+  # select(contains('complet'))
+  # filter(game_id == '2024_07_NYJ_PIT')
+  # select(contains('epa'))
+  group_by(game_id, posteam, passer) %>%
+  # group_by(posteam, passer) %>% 
+  summarise(epa = sum(epa, na.rm = TRUE),
+            air_epa = sum(air_epa, na.rm = TRUE),
+            yac_epa = sum(yac_epa, na.rm = TRUE),
+            qb_epa = sum(qb_epa, na.rm = TRUE),
+            xyac_epa = sum(xyac_epa, na.rm = TRUE),
+            attempts = n(),
+            completions = sum(complete_pass, na.rm = TRUE), 
+            touchdowns = sum(touchdown, na.rm = TRUE),
+            incomplete_pass = sum(incomplete_pass, na.rm = TRUE),
+            complete_pass = sum(complete_pass, na.rm = TRUE), 
+            sacks = sum(sack, na.rm = TRUE),
+            # sack_yards = if_else(sack == 1, sum(yards_gained, na.rm = TRUE), 0),
+            # yards_receiving = sum(receiving_yards, na.rm = TRUE), 
+            # long = ifelse(is.infinite(max(receiving_yards, na.rm = TRUE)),
+            #                   0,
+            #                   max(receiving_yards, na.rm = TRUE)),
+            # first_down_catch = sum(first_down_pass, na.rm = TRUE), 
+            .groups = 'drop') %>% 
+  mutate(attempts = incomplete_pass + complete_pass)
+         yards_per_catch = if_else(yards_receiving == 0, 0, round(yards_receiving / catches, 1))) %>% 
+  # filter(game_id == '2024_07_NYJ_PIT') %>% 
+  arrange(-epa)
 ```
 
