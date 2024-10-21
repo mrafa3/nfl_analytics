@@ -165,3 +165,16 @@ top_plays %>%
   gtsave('.//output/test.html')
 ```
 
+
+
+```{r}
+play_by_play_2024 %>% 
+  filter(game_id == '2024_07_NYJ_PIT',
+         play_type %in% c('run', 'pass')) %>% 
+  group_by(posteam, play_type) %>% 
+  summarise(success_rate = round(100*mean(success, na.rm = TRUE), 1),
+            avg_epa = round(mean(epa, na.rm = TRUE), 2),
+            .groups = 'drop') %>% 
+  pivot_wider(names_from = play_type, values_from = success_rate:avg_epa)
+```
+
