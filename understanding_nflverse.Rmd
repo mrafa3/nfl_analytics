@@ -10,6 +10,7 @@ library(nflverse)
 library(vroom)
 library(ggtext)
 library(ggfx) # <1>
+library(ggimage)
 library(gt)
 ```
 
@@ -365,10 +366,7 @@ play_by_play_2024 %>%
 # From the book
 
 ```{r teams, include=TRUE}
-teams <- nflreadr::load_teams(current = TRUE) %>%
-  select(team_abbr, team_nick, team_name, team_color, team_color2)
-
-teams
+(teams <- nflreadr::load_teams(current = TRUE))
 ```
 
 ### Exercises
@@ -666,12 +664,54 @@ qb_thirddown_data %>%
   theme(axis.text.x = nflplotR::element_nfl_headshot(size = 1))
 ```
 
-
 > To add player headshot to the bottom of each column, we will use the element_nfl_headshot function from the nflplotR package. Inside the theme() option, we use element_nfl_headshot() to replace the axis_text.x(). It is important to remember to use passer_id on the x-axis (rather than passer_name or something similar). The nflplotR package uses the passer_id to automatically pull the correct headshot for each player. Without including passer_id in the x-axis, the resulting headshots will be the “blank” NFL picture.
 
+
+```{r epa_per_play, include=TRUE}
+epa_per_play <- vroom("http://nfl-book.bradcongelio.com/epa-per-play")
+```
+
+```{r epa_per_play_ggplot, include=TRUE}
+epa_per_play %>% 
+  ggplot(.,
+         aes(x = epa_per_play,
+             y = reorder(posteam, epa_per_play))) +
+  geom_col(aes(fill = if_else(epa_per_play >= 0,
+                              "#2c7bb6", "#d7181c")),
+           width = 0.2) +
+  geom_vline(xintercept = 0, color = "black") +
+  scale_fill_identity() +
+  geom_image(aes(image = team_logo_wikipedia),
+             asp = 16/9, size = .035) +
+  labs(x='EPA per Play',
+       y='',
+       title = "**Expected Points Added per Play**",
+       subtitle = "*2022 Regular Season*",
+       caption = "*An Introduction to NFL Analytics with R*<br>
+       **Brad J. Congelio**") + 
+  scale_x_continuous(breaks = scales::pretty_breaks(n = 6)) +
+  scale_y_discrete(expand = c(.05, 0)) +
+  nfl_analytics_theme() +
+  theme(axis.text.y = element_blank())
+```
+
+
+
 # Boneyard 
+
+## Garbage Time 
 
 Note from the book on measuring "garbage time":
 
 > To examine the impact of “garbage time” statistics, we can add an additional filter() that removes those plays that take place within the last 2-minutes of the half and when the probability of winning for either team is over 95% or under 5%...That said, I more often than not do not concern myself with removing “garbage time” statistics. Despite the robust amount of data provided by the nflverse play-by-play function, the information still lacks great amount of granularity and, because of this, I believe removing “garbage time” plays often does more harm than good in the data analysis process.
+
+## Percentile performances from Unexpected Points 
+
+The Unexpected Points Substack has an *Offensive Efficiency and Percentiles* table each week, and I'm interested in replicating some of the included metrics.
+
+![Offensive Efficienty and Percentiles table from Unexpected Points Substack](images/offensive_efficiency.png)
+
+
+
+
 

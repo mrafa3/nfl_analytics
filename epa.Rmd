@@ -47,7 +47,7 @@ teams <- nflreadr::load_teams()
 ```
 
 
-This looks like a good article on [EPA](https://bestballstats.com/expected-points-added-a-full-explanation/#:~:text=Expected%20Points%20Added%20(EPA)%20is,evaluate%20team%20and%20player%20performance.).
+This looks like a good article on [EPA](https://bestballstats.com/expected-points-added-a-full-explanation/#:~:text=Expected%20Points%20Added%20(EPA)%20is,evaluate%20team%20and%20player%20performance.) and [another](https://www.actionnetwork.com/education/what-is-epa-how-expected-points-added-advanced-metric-can-help-you-with-football-betting).
 
 
 ```{r play_by_play_2024, include=TRUE}
