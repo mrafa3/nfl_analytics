@@ -274,6 +274,9 @@ play_by_play_2024 %>%
   arrange(-epa)
 ```
 
+```{r}
+pfr_stats_pass
+```
 
 
 

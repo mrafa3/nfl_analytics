@@ -131,6 +131,14 @@ pfr_stats_pass_filtered %>%
   theme(legend.position = 'none')
 ```
 
+```{r weekly_qbr, include=TRUE}
+weekly_qbr <- nflreadr::load_espn_qbr(seasons = most_recent_season(),
+                        summary_type = 'week')
+
+
+```
+
+
 
 
 # Rushing 
