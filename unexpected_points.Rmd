@@ -50,12 +50,38 @@ nfl_analytics_theme <- function(..., base_size = 12) {
 teams <- nflreadr::load_teams(current = TRUE)
 ```
 
-```{r}
+```{r df_aqe, include=TRUE}
 df_aqe <- read_sheet('https://docs.google.com/spreadsheets/d/1ktlf_ekms7aI6r0tF_HeX0zaxps-bHWYsgglUReC558/edit?gid=1212845642#gid=1212845642',
            sheet = 'Adjusted Quarterback Efficiency')
 
 df_aqe %>% 
   filter(plays > 100,
          season == 2024)
+```
+
+```{r}
+df_aqe %>% 
+  filter(season == 2024) %>% 
+  arrange(epa_rank)
+```
+
+```{r play_by_play_2024, include=TRUE}
+play_by_play_2024 <- nflreadr::load_pbp(seasons = most_recent_season())
+```
+
+From Congelio:
+
+> In the case of Roethlisberger, the three pass attempt difference was the result of the passer_player_name grouping including three QB spikes in the data. **Aside from when attempting to replicate the official statistics, it is better to use just passer as it removes those instances where a QB spike, scramble, or sack my skew the results of your data.**
+
+```{r}
+play_by_play_2024 %>% 
+  filter(!is.na(passer)) %>% 
+  group_by(passer) %>% 
+  summarise(qb_epa = sum(qb_epa, na.rm = TRUE),
+            plays = n(),
+            .groups = 'drop') %>% 
+  mutate(qb_epa_per = qb_epa / plays,
+         epa_rank = rank(-qb_epa)) %>% 
+  arrange(-qb_epa)
 ```
 
