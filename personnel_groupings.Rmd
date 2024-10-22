@@ -110,15 +110,34 @@ snap_counts %>%
 ```
 
 
-# Personnel groupings in 2024
+# Personnel groupings in 2023
+
+It appears that I can't get personnel groupings for the current season from `load_participation()`.
 
 ```{r personnel, include=TRUE}
-(personnel <- nflreadr::load_participation(seasons = 2024, include_pbp = TRUE))
+(personnel <- nflreadr::load_participation(seasons = 2023, include_pbp = TRUE))
 ```
+
+
 
 ```{r}
 personnel %>% 
-  filter(team == 'PIT')
+  filter(possession_team == 'PIT',
+         play_type == 'run',
+         rusher %in% c('J.Warren', 'N.Harris')) %>% 
+  group_by(defenders_in_box, rusher) %>% 
+  summarise(carries = n(),
+            yards = sum(yards_gained, na.rm = TRUE),
+            .groups = 'drop') %>% 
+  mutate(yards_per_carry = round(yards / carries, 1)) %>% 
+  filter(defenders_in_box %in% seq(5,8, by=1)) %>% 
+  ggplot(.,
+         aes(x=yards_per_carry,
+             y=defenders_in_box,
+             color=rusher)) + 
+  geom_jitter(width=0, height = .1) + 
+  nfl_analytics_theme() + 
+  theme(legend.position = 'top')
 ```
 
 
