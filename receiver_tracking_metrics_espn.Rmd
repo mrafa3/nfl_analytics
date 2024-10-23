@@ -88,7 +88,10 @@ receiver_tracking %>%
 receiver_tracking %>% 
   filter(full_nm == 'George Pickens') %>% 
   filter(min_season == max_season & max_season == min_player_season & min_player_season == max_player_season) %>% 
-  mutate(yards_per_route_run = round(yds / rtm_routes, 1)) %>% 
+  mutate(yards_per_route_run = round(yds / rtm_routes, 2),
+         targets_per_route_run = round(rtm_targets / rtm_routes, 2),
+         catch_percent = ) %>% 
+  select(yards_per_route_run, targets_per_route_run, everything())
   ggplot(.,
          aes(x=max_season,
              y=yards_per_route_run)) + 
@@ -117,5 +120,50 @@ player_stats_2024 %>%
       ),
       .names = "{.fn}_{.col}"
     ))
+```
+
+I'll go to Pro Football Reference for the Average Depth of Target (ADOT) metric (and possibly others).
+
+```{r player_ids, include=TRUE}
+player_ids <- nflreadr::load_ff_playerids() %>% 
+  filter(db_season == 2024) %>% 
+  select(gsis_id, pfr_id) %>% 
+  rename(player_id = gsis_id) %>% 
+  filter(complete.cases(.))
+# nflreadr::dictionary_ff_playerids
+```
+
+```{r pfr_stats_rec, include=TRUE}
+pfr_stats_rec <- nflreadr::load_pfr_advstats(seasons = 2024, stat_type = "rec",
+                                             summary_level = "season") %>% 
+  left_join(x=.,
+            y=player_ids,
+            by='pfr_id')
+```
+
+```{r}
+player_stats_2024 %>% 
+  filter(player_name == 'G.Pickens') %>% 
+  group_by(player_id, player_name) %>% 
+  rename(receiving_receptions = receptions,
+         receiving_targets = targets) %>% 
+  summarise(
+    across(
+      starts_with("receiving"),
+      list(
+        sum = ~round(sum(., na.rm = TRUE), 2),
+        mean = ~round(mean(., na.rm = TRUE), 3)
+      ),
+      .names = "{.fn}_{.col}"
+    ),
+    .groups = 'drop') %>% 
+  left_join(x=.,
+            y=pfr_stats_rec,
+            by='player_id')
+```
+
+
+```{r}
+pfr_stats_rec
 ```
 
