@@ -74,8 +74,28 @@ There are several columns that need further investigation, as it's unclear what 
 
 ```{r}
 receiver_tracking %>% 
-  filter(full_nm == 'George Pickens')
+  # this filtering should get 2024 data
+  # filter(min_season == max_season & max_season == min_player_season & min_player_season == max_player_season & max_player_season == 2024) %>% 
+  # this is including all seasons
+  filter(min_season == max_season & max_season == min_player_season & min_player_season == max_player_season) %>% 
+  mutate(yards_per_route_run = round(yds / rtm_routes, 1)) %>% 
+  select(yards_per_route_run, max_player_season, full_nm, everything()) %>% 
+  arrange(-yards_per_route_run)
+
 ```
+
+```{r}
+receiver_tracking %>% 
+  filter(full_nm == 'George Pickens') %>% 
+  filter(min_season == max_season & max_season == min_player_season & min_player_season == max_player_season) %>% 
+  mutate(yards_per_route_run = round(yds / rtm_routes, 1)) %>% 
+  ggplot(.,
+         aes(x=max_season,
+             y=yards_per_route_run)) + 
+  geom_col() + 
+  nfl_analytics_theme()
+```
+
 
 ```{r player_stats_2024, include=TRUE}
 player_stats_2024 <- load_player_stats(seasons = most_recent_season(),
