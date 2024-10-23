@@ -167,3 +167,15 @@ player_stats_2024 %>%
 pfr_stats_rec
 ```
 
+## What are the Steelers missing in their WR room? 
+
+WIP...
+
+```{r}
+receiver_tracking %>% 
+  # this filtering should get 2024 data
+  filter(min_season == max_season & max_season == min_player_season & min_player_season == max_player_season & max_player_season == 2024,
+         tm == 'PIT')
+```
+
+
