@@ -181,12 +181,12 @@ ngs_data_rushing %>%
                   family = "Lexend",
                   fontface = "bold", size = 3.5) +
   scale_alpha_manual(values = c('PIT' = 1,
-                                'Other' = .2)) + 
+                                'Other' = .2)) +
   nfl_analytics_theme() +
   xlab("Rush Yards Over Expected per Attempt") +
   ylab("Actual Rush Yards") +
   labs(title = "Rush Yards Over Expected per Attempt vs. Actual Rush Yards",
-       subtitle = "2024 Regular Season") + 
+       subtitle = "2024 Regular Season through Week 7") + 
   theme(legend.position = 'none')
 ```
 
