@@ -8,7 +8,6 @@ library(tidyverse)
 library(nflverse)
 library(gt)
 library(gtExtras)
-# remotes::install_github("andreweatherman/gtUtils")
 library(gtUtils)
 library(ggtext)
 library(ggrepel)
@@ -39,8 +38,7 @@ nfl_analytics_theme <- function(..., base_size = 12) {
     panel.border = element_blank(),
     legend.background = element_rect(color = "#F7F7F7"),
     legend.key = element_rect(color = "#F7F7F7"),
-    legend.title = element_text(face = "bold"),
-    legend.title.align = 0.5,
+    legend.title = element_text(face = "bold", hjust = .5),
     strip.text = element_text(face = "bold"))
 }
 ```
@@ -225,14 +223,14 @@ play_by_play_2024 %>%
        y='Against the Pass',
        caption='Source: nflreadr:: package') + 
   ggtitle('**Average Defensive Expected Points Added**: Run vs. Pass',
-          subtitle = '2024 season') + 
+          subtitle = '2024 season (through Week 7)') + 
   nfl_analytics_theme() + 
   theme(legend.position = 'none')
 ```
 
 
 
-```{r}
+```{r gt_epa_per_play, include=TRUE, warning=FALSE}
 play_by_play_2024 %>% 
   filter(!is.na(passer)) %>% 
   group_by(passer, posteam) %>% 
@@ -240,22 +238,30 @@ play_by_play_2024 %>%
             sum_yac_epa = sum(yac_epa, na.rm = TRUE),
             plays = n(),
             .groups = 'drop') %>% 
-  mutate(epa_per_play = round(sum_qb_epa / plays, 3)) %>% 
-  filter(plays >= 25) %>% 
+  filter(plays >= 100) %>% 
+  mutate(epa_per_play = round(sum_qb_epa / plays, 3),
+         rank_epa_per_play = rank(-epa_per_play)) %>% 
   arrange(-epa_per_play) %>% 
   gt() %>% 
+  cols_label(passer = 'Name',
+             posteam = 'Team',
+             sum_qb_epa = 'Total EPA',
+             sum_yac_epa = 'EPA from YAC',
+             plays = 'Plays',
+             epa_per_play = 'EPA / Play',
+             rank_epa_per_play = 'Rank') %>% 
   gt_color_pills(sum_qb_epa, digits = 3) %>% 
   gt_color_pills(sum_yac_epa, digits = 3) %>% 
   gt_color_pills(plays, digits = 0) %>% 
   gt_color_pills(epa_per_play, digits = 3) %>% 
   tab_header(
-    title = "Advanced Passing Stats: 2024 Season",
-    subtitle = "Sorted by Expected Points Added (EPA) per play. Source: `nflreadr::` package."
+    title = "Advanced Passing Stats: 2024 Season through Week 7",
+    subtitle = "Sorted by Expected Points Added (EPA) per play. Minimum 100 plays."
   ) %>% 
   gt_theme_athletic() %>%
   cols_width(everything() ~ px(120)) %>% 
   gt_border_bars_top("#1c2632", bar_height = 5) %>%
-  gt_border_bars_bottom("#1c2632", bar_height = 25, text = "Inspiration: Georgios Karamanis' Tidy Tuesday work", text_weight = "normal", text_size = 12)
+  gt_border_bars_bottom("#1c2632", bar_height = 25, text = "Source: `nflreadr::` package. Inspiration: Georgios Karamanis' Tidy Tuesday work.", text_weight = "normal", text_size = 12)
   # gt_save_crop(here::here("2024/2024-week_37/plots/college_admissions.png"))
 ```
 
