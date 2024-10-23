@@ -15,3 +15,5 @@ In this repo, I'll explore the `nflverse::` packages along with a variety of dat
 
 
 ![2024 NFL Quarterbacks and EPA metrics](images/ranked_qb_epa.png)
+
+![2024 Defensive EPA metrics: Run vs. Pass](images/defensive_epa.png)
