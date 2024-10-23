@@ -85,3 +85,39 @@ play_by_play_2024 %>%
   arrange(-qb_epa)
 ```
 
+
+
+```{r}
+df_aqe %>% 
+  filter(name == 'R.Wilson',
+         season == 2024)
+```
+
+```{r}
+play_by_play_2024 %>% 
+  # select(contains('epa'))
+  filter(game_id == '2024_07_NYJ_PIT',
+         play_type == 'pass') %>% 
+  group_by(passer) %>% 
+  summarise(sum_epa = sum(epa, na.rm = TRUE),
+            sum_epa_qb = sum(qb_epa, na.rm = TRUE),
+            sum_epa_yac = sum(yac_epa, na.rm = TRUE),
+            sum_epa_air = sum(air_epa, na.rm = TRUE),
+            sum_epa_comp_yac = sum(comp_yac_epa, na.rm = TRUE),
+            sum_epa_xyac = sum(xyac_epa, na.rm = TRUE),
+            plays = n(),
+            .groups = 'drop') %>% 
+  mutate(test = sum_epa_air + sum_epa_yac) %>% 
+  select(passer, test, everything())
+```
+
+The AQE methodology says that it uses the charting data from FTN.
+
+```{r ftn_charting, include=TRUE}
+ftn_charting <- nflreadr::load_ftn_charting(seasons = most_recent_season())
+```
+
+```{r ftn_charting_head, include=TRUE}
+ftn_charting %>% head()
+```
+
