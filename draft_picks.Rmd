@@ -13,6 +13,12 @@ library(ggtext)
 # Draft pick analysis 
 
 
+# Combine 
+
+```{r combine, include=TRUE}
+combine <- nflreadr::load_combine()
+```
+
 
 # From the Congelio book 
 
