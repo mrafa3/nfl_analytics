@@ -42,8 +42,7 @@ nfl_analytics_theme <- function(..., base_size = 12) {
     panel.border = element_blank(),
     legend.background = element_rect(color = "#F7F7F7"),
     legend.key = element_rect(color = "#F7F7F7"),
-    legend.title = element_text(face = "bold"),
-    legend.title.align = 0.5,
+    legend.title = element_text(face = "bold", hjust = .5),
     strip.text = element_text(face = "bold"))
 }
 ```
@@ -89,15 +88,32 @@ receiver_tracking %>%
   filter(full_nm == 'George Pickens') %>% 
   filter(min_season == max_season & max_season == min_player_season & min_player_season == max_player_season) %>% 
   mutate(yards_per_route_run = round(yds / rtm_routes, 2),
-         targets_per_route_run = round(rtm_targets / rtm_routes, 2),
-         catch_percent = ) %>% 
+         targets_per_route_run = round(rtm_targets / rtm_routes, 2)) %>% 
   select(yards_per_route_run, targets_per_route_run, everything())
-  ggplot(.,
-         aes(x=max_season,
-             y=yards_per_route_run)) + 
-  geom_col() + 
-  nfl_analytics_theme()
 ```
+
+```{r}
+receiver_tracking %>% 
+  filter(min_season == max_season & max_season == min_player_season & min_player_season == max_player_season & max_player_season == 2024) %>% 
+  rename(overall_score = overall) %>% 
+  pivot_longer(cols = ends_with('_score'),
+               names_to = 'score') %>% 
+  ggplot(.,
+         aes(x=value,
+             y=score,
+             alpha=if_else(tm == 'PIT', 'PIT', 'Other'),
+             color=if_else(tm == 'PIT', 'PIT', 'Other'))) + 
+  geom_point() +
+  scale_alpha_manual(values = c('PIT' = 1,
+                                'Other' = .2)) + 
+  scale_color_manual(values = c('PIT' = 'gold',
+                                'Other' = 'black')) + 
+  nfl_analytics_theme() +
+  theme(legend.position = 'none')
+
+?pivot_longer()
+```
+
 
 
 ```{r player_stats_2024, include=TRUE}
