@@ -1,0 +1,101 @@
+---
+title: "Analyzing Receiver Tracking Metrics from ESPN"
+output: html_notebook
+---
+
+```{r libraries, include=TRUE, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(rvest)
+library(janitor)
+library(httr)
+library(jsonlite)
+library(nflverse)
+library(gt)
+library(gtExtras)
+library(ggtext)
+library(ggrepel)
+library(patchwork)
+library(ggimage)
+library(dlookr)
+```
+
+```{r nfl_analytics_theme, include=TRUE}
+nfl_analytics_theme <- function(..., base_size = 12) {
+  
+  theme(
+    text = element_text(family = "Lexend",
+                        size = base_size,
+                        color = "black"),
+    axis.ticks = element_blank(),
+    axis.title = element_text(face = "bold"),
+    axis.text = element_text(face = "bold"),
+    plot.title.position = "plot",
+    plot.title = element_markdown(size = 16,
+                                  vjust = .02,
+                                  hjust = 0.5),
+    plot.subtitle = element_markdown(hjust = 0.5),
+    plot.caption = element_markdown(size = 8),
+    panel.grid.minor = element_blank(),
+    panel.grid.major =  element_line(color = "#d0d0d0"),
+    panel.background = element_rect(fill = "#f7f7f7"),
+    plot.background = element_rect(fill = "#f7f7f7"),
+    panel.border = element_blank(),
+    legend.background = element_rect(color = "#F7F7F7"),
+    legend.key = element_rect(color = "#F7F7F7"),
+    legend.title = element_text(face = "bold"),
+    legend.title.align = 0.5,
+    strip.text = element_text(face = "bold"))
+}
+```
+
+```{r teams, include=FALSE}
+teams <- nflreadr::load_teams(current = TRUE)
+```
+
+```{r url, include=TRUE}
+url <- 'https://espnanalytics.com/receivers'
+```
+
+```{r fetch_rtn_data, include=TRUE}
+response <- GET("https://nfl-player-metrics.s3.amazonaws.com/rtm/rtm_data.json")
+receiver_tracking <- fromJSON(rawToChar(response$content))
+```
+
+# Exploratory analysis of collected data 
+
+```{r}
+receiver_tracking %>% 
+  dlookr::diagnose()
+```
+
+There are several columns that need further investigation, as it's unclear what the grain of the data may be: 
+
+*  `min_season`, `max_season`, `min_player_season`, and `max_player_season` aren't clear. If you take one player (I'll use George Pickens below), it makes this point even muddier, as there are 10 records here for a player in his third season.
+
+```{r}
+receiver_tracking %>% 
+  filter(full_nm == 'George Pickens')
+```
+
+```{r player_stats_2024, include=TRUE}
+player_stats_2024 <- load_player_stats(seasons = most_recent_season(),
+                  stat_type = 'offense')
+```
+
+```{r analyze_player_stats_2024, include=TRUE}
+player_stats_2024 %>% 
+  filter(player_name == 'G.Pickens') %>% 
+  group_by(player_name) %>% 
+  rename(receiving_receptions = receptions,
+         receiving_targets = targets) %>% 
+  summarise(
+    across(
+      starts_with("receiving"),
+      list(
+        # mean = ~round(mean(., na.rm = TRUE), 2),
+        sum = ~round(sum(., na.rm = TRUE), 2)
+      ),
+      .names = "{.fn}_{.col}"
+    ))
+```
+
