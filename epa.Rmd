@@ -7,6 +7,9 @@ output: html_notebook
 library(tidyverse)
 library(nflverse)
 library(gt)
+library(gtExtras)
+# remotes::install_github("andreweatherman/gtUtils")
+library(gtUtils)
 library(ggtext)
 library(ggrepel)
 library(patchwork)
@@ -96,9 +99,9 @@ df_team_epa %>%
   # geom_point(color=df_team_epa$team_color, size=3.5) + 
   geom_image(aes(image = team_logo_wikipedia), size=.1) +
   geom_hline(yintercept = 0,
-             color = "black", size = 0.8, linetype = "dashed") +
+             color = "black", linewidth = 0.8, linetype = "dashed") +
   geom_vline(xintercept = 0,
-             color = "black", size = 0.8, linetype = "dashed") +
+             color = "black", linewidth = 0.8, linetype = "dashed") +
   scale_alpha_manual(values = c('PIT' = 1,
                                 'Other' = .2)) + 
   scale_x_continuous(breaks = scales::pretty_breaks(),
@@ -227,4 +230,32 @@ play_by_play_2024 %>%
   theme(legend.position = 'none')
 ```
 
+
+
+```{r}
+play_by_play_2024 %>% 
+  filter(!is.na(passer)) %>% 
+  group_by(passer, posteam) %>% 
+  summarise(sum_qb_epa = sum(qb_epa, na.rm = TRUE),
+            sum_yac_epa = sum(yac_epa, na.rm = TRUE),
+            plays = n(),
+            .groups = 'drop') %>% 
+  mutate(epa_per_play = round(sum_qb_epa / plays, 3)) %>% 
+  filter(plays >= 25) %>% 
+  arrange(-epa_per_play) %>% 
+  gt() %>% 
+  gt_color_pills(sum_qb_epa, digits = 3) %>% 
+  gt_color_pills(sum_yac_epa, digits = 3) %>% 
+  gt_color_pills(plays, digits = 0) %>% 
+  gt_color_pills(epa_per_play, digits = 3) %>% 
+  tab_header(
+    title = "Advanced Passing Stats: 2024 Season",
+    subtitle = "Sorted by Expected Points Added (EPA) per play. Source: `nflreadr::` package."
+  ) %>% 
+  gt_theme_athletic() %>%
+  cols_width(everything() ~ px(120)) %>% 
+  gt_border_bars_top("#1c2632", bar_height = 5) %>%
+  gt_border_bars_bottom("#1c2632", bar_height = 25, text = "Inspiration: Georgios Karamanis' Tidy Tuesday work", text_weight = "normal", text_size = 12)
+  # gt_save_crop(here::here("2024/2024-week_37/plots/college_admissions.png"))
+```
 
