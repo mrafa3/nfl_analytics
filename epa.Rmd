@@ -267,13 +267,14 @@ play_by_play_2024 %>%
 
 ```{r}
 play_by_play_2024 %>% 
-  # select(contains('inc'))
   filter(!is.na(passer)) %>% 
   group_by(passer, posteam) %>% 
-  summarise(sum_qb_epa_int = sum(qb_epa[interception == 1], na.rm = TRUE),
+  summarise(sum_qb_epa = sum(qb_epa, na.rm = TRUE),
+            sum_qb_epa_int = sum(qb_epa[interception == 1], na.rm = TRUE),
             sum_qb_epa_sack = sum(qb_epa[sack == 1], na.rm = TRUE),
             sum_qb_epa_incomplete = sum(qb_epa[incomplete_pass == 1], na.rm = TRUE),
+            sum_qb_epa_dpi = sum(qb_epa[penalty_type == 'Defensive Pass Interference'], na.rm = TRUE),
             .groups = 'drop') %>% 
-  arrange(sum_qb_epa_int)
+  arrange(-sum_qb_epa_dpi)
 ```
 
