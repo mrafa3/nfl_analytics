@@ -265,3 +265,15 @@ play_by_play_2024 %>%
   # gt_save_crop(here::here("2024/2024-week_37/plots/college_admissions.png"))
 ```
 
+```{r}
+play_by_play_2024 %>% 
+  # select(contains('inc'))
+  filter(!is.na(passer)) %>% 
+  group_by(passer, posteam) %>% 
+  summarise(sum_qb_epa_int = sum(qb_epa[interception == 1], na.rm = TRUE),
+            sum_qb_epa_sack = sum(qb_epa[sack == 1], na.rm = TRUE),
+            sum_qb_epa_incomplete = sum(qb_epa[incomplete_pass == 1], na.rm = TRUE),
+            .groups = 'drop') %>% 
+  arrange(sum_qb_epa_int)
+```
+
