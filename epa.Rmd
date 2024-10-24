@@ -235,7 +235,7 @@ play_by_play_2024 %>%
   filter(!is.na(passer)) %>% 
   group_by(passer, posteam) %>% 
   summarise(sum_qb_epa = sum(qb_epa, na.rm = TRUE),
-            sum_yac_epa = sum(yac_epa, na.rm = TRUE),
+            sum_comp_yac_epa = sum(comp_yac_epa, na.rm = TRUE),
             plays = n(),
             .groups = 'drop') %>% 
   filter(plays >= 100) %>% 
@@ -246,12 +246,12 @@ play_by_play_2024 %>%
   cols_label(passer = 'Name',
              posteam = 'Team',
              sum_qb_epa = 'Total EPA',
-             sum_yac_epa = 'EPA from YAC',
+             sum_comp_yac_epa = 'EPA from YAC (completions only)',
              plays = 'Plays',
              epa_per_play = 'EPA / Play',
              rank_epa_per_play = 'Rank') %>% 
   gt_color_pills(sum_qb_epa, digits = 3) %>% 
-  gt_color_pills(sum_yac_epa, digits = 3) %>% 
+  gt_color_pills(sum_comp_yac_epa, digits = 3) %>% 
   gt_color_pills(plays, digits = 0) %>% 
   gt_color_pills(epa_per_play, digits = 3) %>% 
   tab_header(
