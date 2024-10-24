@@ -238,25 +238,6 @@ pbp_plus_ftn_2024 <- play_by_play_2024 %>%
             y=ftn_charting_2024,
             by=c('game_id' = 'nflverse_game_id',
                  'play_id' = 'nflverse_play_id'))
-
-pbp_plus_ftn_2024 %>% 
-  filter(!is.na(passer)) %>% 
-  group_by(passer, posteam) %>% 
-  summarise(plays = n(),
-            count_drops = sum(is_drop, na.rm = TRUE),
-            sum_qb_epa_drops = sum(qb_epa[is_drop == TRUE], na.rm = TRUE),
-            .groups = 'drop') %>% 
-  filter(plays >= 100) %>% 
-  arrange(-count_drops)
-  # ggplot(.,
-  #        aes(x=count_drops,
-  #            y=sum_qb_epa_drops)) + 
-  # geom_point() + 
-  # scale_x_continuous(breaks = scales::pretty_breaks(),
-  #                    labels = scales::comma_format()) +
-  # scale_y_continuous(breaks = scales::pretty_breaks(),
-  #                    labels = scales::comma_format()) +
-  # nfl_analytics_theme()
 ```
 
 
@@ -297,7 +278,7 @@ pbp_plus_ftn_2024 %>%
 ```
 
 ```{r}
-pbp_plus_ftn_2024 %>% 
+passing_epa <- pbp_plus_ftn_2024 %>% 
   filter(!is.na(passer)) %>% 
   group_by(passer, posteam) %>% 
   summarise(plays = n(),
@@ -322,5 +303,55 @@ pbp_plus_ftn_2024 %>%
       .names = "{.fn}_{.col}"
     )) %>% 
   arrange(-sum_qb_epa_int)
+```
+
+
+```{r}
+passing_epa %>% 
+  select(passer, posteam, plays, contains('mean_centered'), -mean_centered_sum_qb_epa_incomplete) %>% 
+  arrange(-mean_centered_sum_qb_epa) %>% 
+  gt() %>% 
+  cols_label(passer = 'Name',
+             posteam = 'Team',
+             plays = 'Plays',
+             mean_centered_sum_qb_epa = 'EPA',
+             mean_centered_sum_qb_epa_drops = 'Drops',
+             mean_centered_sum_qb_epa_int = 'INTs',
+             mean_centered_sum_qb_epa_sack = 'Sacks',
+             # mean_centered_sum_qb_epa_incomplete = 'Incomplete Pass',
+             mean_centered_sum_qb_epa_dpi = 'DPI') %>% 
+  gt_color_pills(mean_centered_sum_qb_epa, digits = 3) %>% 
+  gt_color_pills(mean_centered_sum_qb_epa_drops, digits = 3) %>% 
+  gt_color_pills(mean_centered_sum_qb_epa_int, digits = 3) %>% 
+  gt_color_pills(mean_centered_sum_qb_epa_sack, digits = 3) %>% 
+  # gt_color_pills(mean_centered_sum_qb_epa_incomplete, digits = 3) %>% 
+  gt_color_pills(mean_centered_sum_qb_epa_dpi, digits = 3) %>% 
+  tab_header(
+    title = "Advanced Passing Stats: 2024 Season through Week 7",
+    subtitle = "All values relative to the average QB in 2024. Minimum 25 plays."
+  ) %>% 
+  gt_theme_athletic() %>%
+  cols_width(everything() ~ px(120)) %>% 
+  gt_border_bars_top("#1c2632", bar_height = 5) %>%
+  gt_border_bars_bottom("#1c2632", bar_height = 25, text = "Source: `nflreadr::` package. Inspiration: Unexpected Points Substack.", text_weight = "normal", text_size = 12)
+```
+
+```{r}
+passing_epa %>% 
+  ggplot(.,
+         aes(x=interceptions,
+             y=sum_qb_epa_int,
+             alpha=if_else(passer == 'P.Mahomes', 'P.Mahomes', 'Other'))) +
+  geom_point() +
+  ggrepel::geom_text_repel(aes(label = passer),
+                           box.padding = .5) + 
+  scale_x_continuous(breaks = scales::pretty_breaks(),
+                     labels = scales::comma_format()) +
+  scale_y_continuous(breaks = scales::pretty_breaks(),
+                     labels = scales::comma_format()) +
+  scale_alpha_manual(values = c('P.Mahomes' = 1,
+                                'Other' = .2)) + 
+  nfl_analytics_theme() + 
+  theme(legend.position = 'none')
 ```
 
