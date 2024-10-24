@@ -228,10 +228,41 @@ play_by_play_2024 %>%
   theme(legend.position = 'none')
 ```
 
+```{r}
+ftn_charting_2024 <- load_ftn_charting(seasons = most_recent_season())
+```
+
+```{r}
+pbp_plus_ftn_2024 <- play_by_play_2024 %>% 
+  left_join(x=.,
+            y=ftn_charting_2024,
+            by=c('game_id' = 'nflverse_game_id',
+                 'play_id' = 'nflverse_play_id'))
+
+pbp_plus_ftn_2024 %>% 
+  filter(!is.na(passer)) %>% 
+  group_by(passer, posteam) %>% 
+  summarise(plays = n(),
+            count_drops = sum(is_drop, na.rm = TRUE),
+            sum_qb_epa_drops = sum(qb_epa[is_drop == TRUE], na.rm = TRUE),
+            .groups = 'drop') %>% 
+  filter(plays >= 100) %>% 
+  arrange(-count_drops)
+  # ggplot(.,
+  #        aes(x=count_drops,
+  #            y=sum_qb_epa_drops)) + 
+  # geom_point() + 
+  # scale_x_continuous(breaks = scales::pretty_breaks(),
+  #                    labels = scales::comma_format()) +
+  # scale_y_continuous(breaks = scales::pretty_breaks(),
+  #                    labels = scales::comma_format()) +
+  # nfl_analytics_theme()
+```
+
 
 
 ```{r gt_epa_per_play, include=TRUE, warning=FALSE}
-play_by_play_2024 %>% 
+pbp_plus_ftn_2024 %>% 
   filter(!is.na(passer)) %>% 
   group_by(passer, posteam) %>% 
   summarise(sum_qb_epa = sum(qb_epa, na.rm = TRUE),
@@ -266,24 +297,30 @@ play_by_play_2024 %>%
 ```
 
 ```{r}
-play_by_play_2024 %>% 
+pbp_plus_ftn_2024 %>% 
   filter(!is.na(passer)) %>% 
   group_by(passer, posteam) %>% 
-  summarise(sum_qb_epa = sum(qb_epa, na.rm = TRUE),
+  summarise(plays = n(),
+            count_drops = sum(is_drop, na.rm = TRUE),
+            interceptions = sum(interception, na.rm = TRUE),
+            sum_qb_epa = sum(qb_epa, na.rm = TRUE),
+            sum_qb_epa_drops = sum(qb_epa[is_drop == TRUE], na.rm = TRUE),
             sum_qb_epa_int = sum(qb_epa[interception == 1], na.rm = TRUE),
             sum_qb_epa_sack = sum(qb_epa[sack == 1], na.rm = TRUE),
             sum_qb_epa_incomplete = sum(qb_epa[incomplete_pass == 1], na.rm = TRUE),
             sum_qb_epa_dpi = sum(qb_epa[penalty_type == 'Defensive Pass Interference'], na.rm = TRUE),
             .groups = 'drop') %>% 
+  filter(plays >= 25) %>% 
   mutate(
     across(
       starts_with("sum"),
       list(
         # mean = ~round(mean(., na.rm = TRUE), 2),
-        zscore = ~scale(.)
+        # zscore = ~scale(.),
+        mean_centered = ~. - mean(., na.rm = TRUE)
       ),
       .names = "{.fn}_{.col}"
     )) %>% 
-  arrange(-sum_qb_epa_dpi)
+  arrange(-sum_qb_epa_int)
 ```
 
