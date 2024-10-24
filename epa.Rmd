@@ -275,6 +275,15 @@ play_by_play_2024 %>%
             sum_qb_epa_incomplete = sum(qb_epa[incomplete_pass == 1], na.rm = TRUE),
             sum_qb_epa_dpi = sum(qb_epa[penalty_type == 'Defensive Pass Interference'], na.rm = TRUE),
             .groups = 'drop') %>% 
+  mutate(
+    across(
+      starts_with("sum"),
+      list(
+        # mean = ~round(mean(., na.rm = TRUE), 2),
+        zscore = ~scale(.)
+      ),
+      .names = "{.fn}_{.col}"
+    )) %>% 
   arrange(-sum_qb_epa_dpi)
 ```
 
