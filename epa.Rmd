@@ -13,6 +13,8 @@ library(ggtext)
 library(ggrepel)
 library(patchwork)
 library(ggimage)
+library(glue)
+library(ggiraph)
 ```
 
 ```{r nfl_analytics_theme, include=TRUE}
@@ -184,21 +186,9 @@ mutate(epa_quadrant = if_else(avg_defensive_epa > 0 & avg_offensive_epa < 0, 'Qu
                       if_else(avg_defensive_epa < 0 & avg_offensive_epa < 0, 'Quad3', 'Quad4')))))
 ```
 
-```{r seasons, include=TRUE}
-seasons <- nflreadr::load_schedules(seasons = 2024) %>% 
-  mutate(winner = if_else(home_score > away_score, home_team,
-                  if_else(home_score < away_score, away_team, 'Tie')),
-         loser = if_else(home_score > away_score, away_team,
-                 if_else(home_score < away_score, home_team, 'Tie')))
-
-seasons %>% 
-  summarise(wins = count(winner),
-            losses = count(loser))
-  select(winner, loser, everything())
-```
 
 ```{r defensive_epa_runpass, include=TRUE}
-play_by_play_2024 %>% 
+(defensive_epa_runpass <- play_by_play_2024 %>% 
   filter(play_type %in% c('run', 'pass')) %>% 
   group_by(defteam, play_type) %>% 
   summarise(avg_epa = mean(epa, na.rm = TRUE),
@@ -212,9 +202,9 @@ play_by_play_2024 %>%
              y=pass)) + 
   geom_image(aes(image = team_logo_wikipedia), size=.1) +
   geom_hline(yintercept = 0,
-             color = "black", size = 0.8, linetype = "dashed") +
+             color = "black", linewidth = 0.8, linetype = "dashed") +
   geom_vline(xintercept = 0,
-             color = "black", size = 0.8, linetype = "dashed") +
+             color = "black", linewidth = 0.8, linetype = "dashed") +
   scale_x_continuous(breaks = scales::pretty_breaks(),
                      labels = scales::comma_format()) +
   scale_y_continuous(breaks = scales::pretty_breaks(),
@@ -225,14 +215,14 @@ play_by_play_2024 %>%
   ggtitle('**Average Defensive Expected Points Added**: Run vs. Pass',
           subtitle = '2024 season (through Week 7)') + 
   nfl_analytics_theme() + 
-  theme(legend.position = 'none')
+  theme(legend.position = 'none'))
 ```
 
-```{r}
+```{r ftn_charting_2024, include=TRUE}
 ftn_charting_2024 <- load_ftn_charting(seasons = most_recent_season())
 ```
 
-```{r}
+```{r pbp_plus_ftn_2024, include=TRUE}
 pbp_plus_ftn_2024 <- play_by_play_2024 %>% 
   left_join(x=.,
             y=ftn_charting_2024,
@@ -241,8 +231,284 @@ pbp_plus_ftn_2024 <- play_by_play_2024 %>%
 ```
 
 
+```{r}
+passing_epa <- pbp_plus_ftn_2024 %>% 
+  filter(!is.na(passer)) %>% 
+  group_by(passer, posteam) %>% 
+  summarise(plays = n(),
+            count_drops = sum(is_drop, na.rm = TRUE),
+            interceptions = sum(interception, na.rm = TRUE),
+            sum_qb_epa = sum(qb_epa, na.rm = TRUE),
+            sum_qb_epa_drops = sum(qb_epa[is_drop == TRUE], na.rm = TRUE),
+            sum_qb_epa_int = sum(qb_epa[interception == 1], na.rm = TRUE),
+            sum_qb_epa_sack = sum(qb_epa[sack == 1], na.rm = TRUE),
+            sum_qb_epa_incomplete = sum(qb_epa[incomplete_pass == 1], na.rm = TRUE),
+            sum_qb_epa_dpi = sum(qb_epa[penalty_type == 'Defensive Pass Interference'], na.rm = TRUE),
+            .groups = 'drop') %>% 
+  filter(plays >= 25) %>% 
+  mutate(
+    across(
+      starts_with("sum"),
+      list(
+        # mean = ~round(mean(., na.rm = TRUE), 2),
+        # zscore = ~scale(.),
+        mean_centered = ~. - mean(., na.rm = TRUE)
+      ),
+      .names = "{.fn}_{.col}"
+    )) %>% 
+  arrange(-sum_qb_epa_int)
+```
 
-```{r gt_epa_per_play, include=TRUE, warning=FALSE}
+
+```{r qb_epa_mean_centered_gt, include=TRUE, warning=FALSE, results='asis'}
+passing_epa %>% 
+  select(passer, posteam, plays, contains('mean_centered'), -mean_centered_sum_qb_epa_incomplete) %>% 
+  arrange(-mean_centered_sum_qb_epa) %>% 
+  gt() %>% 
+  cols_label(passer = 'Name',
+             posteam = 'Team',
+             plays = 'Plays',
+             mean_centered_sum_qb_epa = 'EPA',
+             mean_centered_sum_qb_epa_drops = 'Drops',
+             mean_centered_sum_qb_epa_int = 'INTs',
+             mean_centered_sum_qb_epa_sack = 'Sacks',
+             mean_centered_sum_qb_epa_dpi = 'DPI')
+```
+
+
+## Would the Broncos defensive EPA look dramatically different without Pat Surtain's 100 yard pick six?
+
+```{r}
+pbp_plus_ftn_2024 %>% 
+  filter(game_id == '2024_05_LV_DEN', 
+         play_id == 1192) %>% 
+  select(contains('epa'))
+
+```
+
+
+```{r}
+play_by_play_2024 %>% 
+  filter(!(play_id == 1192 & game_id == '2024_05_LV_DEN')) %>% 
+  filter(!is.na(posteam)) %>% 
+  group_by(defteam) %>% 
+  summarise(avg_epa_per_play = mean(epa, na.rm = TRUE),
+            .groups = 'drop') %>% 
+  left_join(x=.,
+            y=teams,
+            by=c('defteam' = 'team_abbr')) %>% 
+  ggplot(.,
+         aes(x = avg_epa_per_play,
+             y = reorder(defteam, -avg_epa_per_play))) +
+  geom_col(aes(fill = if_else(avg_epa_per_play >= 0,
+                              "#d7181c", "#2c7bb6")),
+           width = 0.2) +
+  geom_vline(xintercept = 0, color = "black") +
+  scale_fill_identity() +
+  geom_image(aes(image = team_logo_wikipedia),
+             asp = 16/9, size = .035) +
+  labs(x='EPA per Play',
+       y='',
+       title = "**Defensive Expected Points Added per Play**",
+       subtitle = "*2024 Regular Season (through Week 7)<br>Excludes Pat Surtain's pick 6 to see its effect on value*",
+       caption = "*Inspired by An Introduction to NFL Analytics with R*") + 
+  scale_x_continuous(breaks = scales::pretty_breaks(n = 6)) +
+  scale_y_discrete(expand = c(.05, 0)) +
+  nfl_analytics_theme() +
+  theme(axis.text.y = element_blank())
+```
+
+
+```{r defensive_epa_runpass_wo_surtain_pick6, include=TRUE}
+(defensive_epa_runpass_wo_surtain_pick6 <- play_by_play_2024 %>% 
+  filter(!(play_id == 1192 & game_id == '2024_05_LV_DEN')) %>% 
+  filter(play_type %in% c('run', 'pass')) %>% 
+  group_by(defteam, play_type) %>% 
+  summarise(avg_epa = mean(epa, na.rm = TRUE),
+            .groups = 'drop') %>% 
+  pivot_wider(names_from = play_type, values_from = avg_epa) %>% 
+  left_join(x=.,
+            y=teams,
+            by=c('defteam' = 'team_abbr')) %>% 
+    ggplot(.,
+         aes(x=run,
+             y=pass)) + 
+  geom_image(aes(image = team_logo_wikipedia), size=.1) +
+  geom_hline(yintercept = 0,
+             color = "black", linewidth = 0.8, linetype = "dashed") +
+  geom_vline(xintercept = 0,
+             color = "black", linewidth = 0.8, linetype = "dashed") +
+  scale_x_continuous(breaks = scales::pretty_breaks(),
+                     labels = scales::comma_format()) +
+  scale_y_continuous(breaks = scales::pretty_breaks(),
+                     labels = scales::comma_format()) +
+  labs(x='Against the Run',
+       y='',
+       caption='Source: nflreadr:: package') + 
+  ggtitle('',
+          subtitle = "<span style='color:#FB4F14'>**Excludes Pat Surtain's pick 6**</span>") + 
+  nfl_analytics_theme() + 
+  theme(legend.position = 'none'))
+```
+
+```{r patchwork_runpass_wo_surtain_pick6, include=TRUE}
+defensive_epa_runpass + defensive_epa_runpass_wo_surtain_pick6
+```
+
+This shows that, while that play did have an effect, the Broncos would still probably have the top defense against the pass through Week 7 (I say probably, because I didn't substitute that play's actual EPA with what it would have been, had that play resulted in a touchdown).
+
+## Pat Mahomes' interception misfortune in 2024 -- what do our priors tell us about his likely performance from here? 
+
+```{r}
+passing_epa %>% 
+  ggplot(.,
+         aes(x=interceptions,
+             y=sum_qb_epa_int,
+             alpha=if_else(passer == 'P.Mahomes', 'P.Mahomes', 'Other'))) +
+  geom_point() +
+  ggrepel::geom_text_repel(aes(label = passer),
+                           box.padding = .5) + 
+  scale_x_continuous(breaks = scales::pretty_breaks(),
+                     labels = scales::comma_format()) +
+  scale_y_continuous(breaks = scales::pretty_breaks(),
+                     labels = scales::comma_format()) +
+  scale_alpha_manual(values = c('P.Mahomes' = 1,
+                                'Other' = .2)) + 
+  nfl_analytics_theme() + 
+  theme(legend.position = 'none')
+```
+
+```{r player_stats_17_24, include=TRUE}
+player_stats_17_24 <- load_player_stats(seasons = 2017:2024,
+                                        stat_type = 'offense')
+```
+
+
+```{r}
+(int_rate_17_24 <- player_stats_17_24 %>% 
+  filter(position == 'QB') %>% 
+  group_by(recent_team, player_name, season) %>% 
+  summarise(
+    across(
+      c(attempts, interceptions),
+      list(
+        sum = ~sum(., na.rm = TRUE)
+      ),
+      .names = "{.fn}_{.col}"
+    ),
+    .groups = 'drop') %>% 
+  mutate(int_rate = sum_interceptions / sum_attempts) %>% 
+  filter(sum_attempts >= 100))
+```
+
+
+```{r}
+int_rate_17_24 %>% 
+  filter(player_name == 'P.Mahomes') %>% 
+  ggplot(.,
+         aes(x=season,
+             y=int_rate)) + 
+  geom_col() + 
+  geom_mean_lines(aes(y0=int_rate)) + 
+  geom_text(aes(label = paste(round(int_rate*100, 1), '%', sep='')),
+            nudge_y = -.002, color='white', family='Lexend', fontface='bold') + 
+  scale_y_continuous(labels = scales::percent) + 
+  scale_x_continuous(breaks = seq(2017, 2024, 1)) +
+  labs(x='',
+       y='INT rate') + 
+  ggtitle('Pat Mahomes has **doubled** his career average interception rate',
+          subtitle = 'INT rate = interceptions / attempts<br>Does not exclude throw aways') + 
+  nfl_analytics_theme()
+```
+
+```{r int_rate_jitter, include=TRUE, fig.width=10, fig.height=6.2}
+int_rate_jitter <- int_rate_17_24 %>% 
+  filter(season >= 2018) %>% 
+  group_by(season) %>% 
+  mutate(rank_int_rate = rank(int_rate),
+         is_mahomes = if_else(player_name == 'P.Mahomes', 'P.Mahomes', 'Other')) %>% 
+  ggplot(.,
+         aes(x=season,
+             y=int_rate,
+             color=is_mahomes,
+             alpha=is_mahomes)) + 
+  # geom_jitter(height = 0) + 
+  geom_jitter_interactive(aes(data_id = player_name, tooltip = player_name),
+                          height = 0) + 
+  ggtitle(glue("<span style='color:#E31837'>**Pat Mahomes**</span> usually boasts some of the lowest INT rates<br>in the NFL -- not in 2024")) + 
+  scale_color_manual(values = c('P.Mahomes' = '#E31837',
+                                'Other' = 'black')) + 
+  scale_alpha_manual(values = c('P.Mahomes' = 1,
+                                'Other' = .2)) + 
+  scale_y_continuous(labels = scales::percent) + 
+  scale_x_continuous(breaks = seq(2017, 2024, 1)) +
+  labs(x='',
+       y='INT rate') + 
+  nfl_analytics_theme() + 
+  theme(legend.position = 'none')
+```
+
+
+```{r}
+interactive_plot <- girafe(
+  ggobj = int_rate_jitter
+)
+```
+
+```{r int_rate_jitter_interactive, include=TRUE, fig.width=10, fig.height=6.2}
+int_rate_jitter <- int_rate_17_24 %>% 
+  filter(season >= 2018) %>% 
+  group_by(season) %>% 
+  mutate(rank_int_rate = rank(int_rate),
+         is_mahomes = if_else(player_name == 'P.Mahomes', 'P.Mahomes', 'Other'),
+         player_name_clean = stringr::str_replace_all(player_name, "'", "")) %>%  # Remove single quotes
+  ggplot(aes(x = season,
+             y = int_rate,
+             color = is_mahomes,
+             alpha = is_mahomes)) + 
+  geom_jitter_interactive(aes(
+    data_id = player_name_clean, 
+    tooltip = glue("{player_name_clean} ({season}): {scales::percent(int_rate)}")
+  ), height = 0) + 
+  ggtitle(glue("**Pat Mahomes** usually boasts some of the lowest INT rates
+in the NFL -- not in 2024")) + 
+  scale_color_manual(values = c('P.Mahomes' = '#E31837', 'Other' = 'black')) + 
+  scale_alpha_manual(values = c('P.Mahomes' = 1, 'Other' = 0.2)) + 
+  scale_y_continuous(labels = scales::percent) + 
+  scale_x_continuous(breaks = seq(2017, 2024, 1)) +
+  labs(x = '', y = 'INT rate') + 
+  theme(
+    text = element_text(family = "Lexend",
+                        size = 12,
+                        color = "black"),
+    axis.ticks = element_blank(),
+    axis.title = element_text(face = "bold"),
+    axis.text = element_text(face = "bold"),
+    plot.title.position = "plot",
+    plot.title = element_markdown(size = 16,
+                                  vjust = .02,
+                                  hjust = 0.5),
+    plot.subtitle = element_markdown(hjust = 0.5),
+    plot.caption = element_markdown(size = 8),
+    panel.grid.minor = element_blank(),
+    panel.grid.major =  element_line(color = "#d0d0d0"),
+    panel.background = element_rect(fill = "#f7f7f7"),
+    plot.background = element_rect(fill = "#f7f7f7"),
+    panel.border = element_blank(),
+    strip.text = element_text(face = "bold"),
+    legend.position = 'none')
+
+interactive_plot <- girafe(ggobj = int_rate_jitter, width_svg = 7, height_svg = 5)
+
+interactive_plot
+```
+
+
+
+# QB EPA Tables 
+
+
+```{r gt_epa_per_play, include=FALSE, warning=FALSE, results='asis'}
 pbp_plus_ftn_2024 %>% 
   filter(!is.na(passer)) %>% 
   group_by(passer, posteam) %>% 
@@ -274,40 +540,11 @@ pbp_plus_ftn_2024 %>%
   cols_width(everything() ~ px(120)) %>% 
   gt_border_bars_top("#1c2632", bar_height = 5) %>%
   gt_border_bars_bottom("#1c2632", bar_height = 25, text = "Source: `nflreadr::` package. Inspiration: Georgios Karamanis' Tidy Tuesday work.", text_weight = "normal", text_size = 12)
-  # gt_save_crop(here::here("2024/2024-week_37/plots/college_admissions.png"))
-```
-
-```{r}
-passing_epa <- pbp_plus_ftn_2024 %>% 
-  filter(!is.na(passer)) %>% 
-  group_by(passer, posteam) %>% 
-  summarise(plays = n(),
-            count_drops = sum(is_drop, na.rm = TRUE),
-            interceptions = sum(interception, na.rm = TRUE),
-            sum_qb_epa = sum(qb_epa, na.rm = TRUE),
-            sum_qb_epa_drops = sum(qb_epa[is_drop == TRUE], na.rm = TRUE),
-            sum_qb_epa_int = sum(qb_epa[interception == 1], na.rm = TRUE),
-            sum_qb_epa_sack = sum(qb_epa[sack == 1], na.rm = TRUE),
-            sum_qb_epa_incomplete = sum(qb_epa[incomplete_pass == 1], na.rm = TRUE),
-            sum_qb_epa_dpi = sum(qb_epa[penalty_type == 'Defensive Pass Interference'], na.rm = TRUE),
-            .groups = 'drop') %>% 
-  filter(plays >= 25) %>% 
-  mutate(
-    across(
-      starts_with("sum"),
-      list(
-        # mean = ~round(mean(., na.rm = TRUE), 2),
-        # zscore = ~scale(.),
-        mean_centered = ~. - mean(., na.rm = TRUE)
-      ),
-      .names = "{.fn}_{.col}"
-    )) %>% 
-  arrange(-sum_qb_epa_int)
-```
 
 
-```{r}
-passing_epa %>% 
+qb_epa_mean_centered_gt <- 
+  htmltools::withTags({
+    passing_epa %>% 
   select(passer, posteam, plays, contains('mean_centered'), -mean_centered_sum_qb_epa_incomplete) %>% 
   arrange(-mean_centered_sum_qb_epa) %>% 
   gt() %>% 
@@ -318,13 +555,11 @@ passing_epa %>%
              mean_centered_sum_qb_epa_drops = 'Drops',
              mean_centered_sum_qb_epa_int = 'INTs',
              mean_centered_sum_qb_epa_sack = 'Sacks',
-             # mean_centered_sum_qb_epa_incomplete = 'Incomplete Pass',
              mean_centered_sum_qb_epa_dpi = 'DPI') %>% 
   gt_color_pills(mean_centered_sum_qb_epa, digits = 3) %>% 
   gt_color_pills(mean_centered_sum_qb_epa_drops, digits = 3) %>% 
   gt_color_pills(mean_centered_sum_qb_epa_int, digits = 3) %>% 
   gt_color_pills(mean_centered_sum_qb_epa_sack, digits = 3) %>% 
-  # gt_color_pills(mean_centered_sum_qb_epa_incomplete, digits = 3) %>% 
   gt_color_pills(mean_centered_sum_qb_epa_dpi, digits = 3) %>% 
   tab_header(
     title = "Advanced Passing Stats: 2024 Season through Week 7",
@@ -334,24 +569,11 @@ passing_epa %>%
   cols_width(everything() ~ px(120)) %>% 
   gt_border_bars_top("#1c2632", bar_height = 5) %>%
   gt_border_bars_bottom("#1c2632", bar_height = 25, text = "Source: `nflreadr::` package. Inspiration: Unexpected Points Substack.", text_weight = "normal", text_size = 12)
+  })
+
+
 ```
 
-```{r}
-passing_epa %>% 
-  ggplot(.,
-         aes(x=interceptions,
-             y=sum_qb_epa_int,
-             alpha=if_else(passer == 'P.Mahomes', 'P.Mahomes', 'Other'))) +
-  geom_point() +
-  ggrepel::geom_text_repel(aes(label = passer),
-                           box.padding = .5) + 
-  scale_x_continuous(breaks = scales::pretty_breaks(),
-                     labels = scales::comma_format()) +
-  scale_y_continuous(breaks = scales::pretty_breaks(),
-                     labels = scales::comma_format()) +
-  scale_alpha_manual(values = c('P.Mahomes' = 1,
-                                'Other' = .2)) + 
-  nfl_analytics_theme() + 
-  theme(legend.position = 'none')
+```{r render_qb_epa_mean_centered_gt, include=TRUE}
+qb_epa_mean_centered_gt
 ```
-
