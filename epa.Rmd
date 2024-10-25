@@ -470,35 +470,17 @@ int_rate_jitter <- int_rate_17_24 %>%
     data_id = player_name_clean, 
     tooltip = glue("{player_name_clean} ({season}): {scales::percent(int_rate)}")
   ), height = 0) + 
-  ggtitle(glue("**Pat Mahomes** usually boasts some of the lowest INT rates
+  ggtitle(glue("Pat Mahomes usually boasts some of the lowest INT rates
 in the NFL -- not in 2024")) + 
   scale_color_manual(values = c('P.Mahomes' = '#E31837', 'Other' = 'black')) + 
   scale_alpha_manual(values = c('P.Mahomes' = 1, 'Other' = 0.2)) + 
   scale_y_continuous(labels = scales::percent) + 
   scale_x_continuous(breaks = seq(2017, 2024, 1)) +
   labs(x = '', y = 'INT rate') + 
-  theme(
-    text = element_text(family = "Lexend",
-                        size = 12,
-                        color = "black"),
-    axis.ticks = element_blank(),
-    axis.title = element_text(face = "bold"),
-    axis.text = element_text(face = "bold"),
-    plot.title.position = "plot",
-    plot.title = element_markdown(size = 16,
-                                  vjust = .02,
-                                  hjust = 0.5),
-    plot.subtitle = element_markdown(hjust = 0.5),
-    plot.caption = element_markdown(size = 8),
-    panel.grid.minor = element_blank(),
-    panel.grid.major =  element_line(color = "#d0d0d0"),
-    panel.background = element_rect(fill = "#f7f7f7"),
-    plot.background = element_rect(fill = "#f7f7f7"),
-    panel.border = element_blank(),
-    strip.text = element_text(face = "bold"),
-    legend.position = 'none')
+  nfl_analytics_theme() + 
+  theme(legend.position = 'none')
 
-interactive_plot <- girafe(ggobj = int_rate_jitter, width_svg = 7, height_svg = 5)
+interactive_plot <- girafe(ggobj = int_rate_jitter)
 
 interactive_plot
 ```
