@@ -100,6 +100,9 @@ defensive_epa_success %>%
   scale_x_continuous(breaks = scales::pretty_breaks(),
                      labels = scales::percent_format()) +
   scale_y_continuous(breaks = scales::pretty_breaks()) +
+  labs(title='Defensive EPA per play vs. Defensive success rate',
+       y='EPA per play',
+       x='Success Rate') + 
   nfl_analytics_theme()
 ```
 
