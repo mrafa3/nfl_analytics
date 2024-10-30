@@ -134,8 +134,6 @@ pfr_stats_pass_filtered %>%
 ```{r weekly_qbr, include=TRUE}
 weekly_qbr <- nflreadr::load_espn_qbr(seasons = most_recent_season(),
                         summary_type = 'week')
-
-
 ```
 
 
@@ -418,13 +416,13 @@ pfr_stats_def_filtered_cb %>%
   ggplot(.,
          aes(x=yds_cmp,
              y=rat,
-             alpha=if_else(tm %in% c('PIT', 'NYG'), 'PIT/NYG', 'Other'))) + 
+             alpha=if_else(tm %in% c('PIT', 'WAS'), 'PIT/WAS', 'Other'))) + 
   geom_point(color=pfr_stats_def_filtered_cb$team_color, size=3.5) +
   geom_text_repel(aes(label = player),
                   familiy='Lexend', fontface='bold', size=3.5, box.padding = .5) + 
   labs(y='QB rating allowed',
        x='Yards per completion') + 
-  scale_alpha_manual(values = c('PIT/NYG' = 1,
+  scale_alpha_manual(values = c('PIT/WAS' = 1,
                                 'Other' = .2)) + 
   nfl_analytics_theme() + 
   theme(legend.position = 'none')
