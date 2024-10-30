@@ -228,6 +228,33 @@ play_action_2024 %>%
   theme(axis.text.x = nflplotR::element_nfl_headshot(size = 1))
 ```
 
+# CPOE and stats replication
+
+https://www.nfeloapp.com/qb-rankings/
+
+```{r}
+# need to unpack the necessary filters to match reported stats
+pbp_plus_ftn_2022_24 %>% 
+  # select(contains('yards'))
+  filter(season == 2024) %>% 
+  filter(!is.na(passer)) %>% 
+  group_by(posteam, passer) %>% 
+  summarise(attempts = sum(pass_attempt, na.rm = TRUE), 
+            adj_attempts = sum(pass_attempt[is_throw_away == FALSE], na.rm = TRUE),
+            completions = sum(complete_pass, na.rm = TRUE), 
+            avg_cpoe = mean(cpoe, na.rm = TRUE),
+            sacks_taken = sum(sack, na.rm = TRUE), 
+            yards = sum(yards_gained[complete_pass == 1], na.rm = TRUE),
+            .groups = 'drop') %>% 
+  filter(attempts > 30) %>%
+  mutate(yards_per_attempt = round(yards / attempts, 1), 
+         completion_perc = completions / adj_attempts,
+         adj_completion_perc = completions / adj_attempts, 
+         rank_cpoe = rank(-avg_cpoe),
+         rank_adj_completion_perc = rank(-adj_completion_perc)) %>% 
+  arrange(-yards_per_attempt)
+```
+
 
 
 
