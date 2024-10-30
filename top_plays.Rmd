@@ -98,6 +98,8 @@ min_epa <- play_by_play_2024 %>%
   pull()
 ```
 
+
+
 ```{r top_plays, include=TRUE}
 top_plays <- play_by_play_2024 %>% 
   filter(str_detect(game_id, 'PIT')) %>% 
@@ -112,13 +114,13 @@ top_plays <- play_by_play_2024 %>%
                                play_type == 'punt' ~ 'Punt',
                                TRUE ~ 'Other'),
          abs_epa = abs(epa),
-         wp_chg = abs(lead(wp) - wp)) %>% 
+         home_wp_chg = lead(home_wp) - home_wp) %>% 
   group_by(game_id) %>% 
   arrange(-abs_epa) %>%
   select(game_id, team_wordmark, qtr, time, down_dist, yrdln, score, play_type,
-         desc, epa, wp, wp_chg) %>%
+         desc, epa, home_wp, home_wp_chg) %>%
   # filtering out garbage time (Congelio book recommends using 95/5 split if you're going to remove garbage time at all)
-  filter(wp > .05 & wp < .95) %>% 
+  filter(home_wp > .05 & home_wp < .95) %>% 
   slice(1:10) %>% 
   ungroup()
 ```
@@ -129,10 +131,19 @@ top_plays %>%
   distinct(game_id)
 ```
 
+```{r}
+play_by_play_2024 %>% 
+  # choose the game
+  filter(game_id == '2024_08_NYG_PIT',
+         qtr == 3) %>% 
+  select(contains('wp'), time, everything())
+```
+
+
 ```{r gt_top_plays, include=TRUE}
 top_plays %>% 
   # choose the game
-  filter(game_id == '2024_07_NYJ_PIT') %>% 
+  filter(game_id == '2024_08_NYG_PIT') %>% 
   select(-game_id) %>% 
   gt() %>% 
   gt_img_rows(columns = team_wordmark) %>% 
@@ -145,15 +156,15 @@ top_plays %>%
              play_type = 'Play',
              desc = 'Description',
              # ydsnet = 'Yards',
-             wp = 'Win Prob',
-             wp_chg = 'Win Prob Change') %>% 
+             home_wp = 'Win Prob (H)',
+             home_wp_chg = 'Win Prob Change (H)') %>% 
   #add table title
   tab_header(title = md("**Biggest Plays of the Game**"),
              subtitle = md("Plays ranked by absolute value of Expected Points Added<br>Excluding garbage time where win probabilty is .05 < x < .95")) %>% 
   tab_source_note(source_note = 'Replicating work done by Kevin Cole in the Unexpected Points Substack newsletter') %>% 
   fmt_number(columns = epa,
              decimals = 2) %>% 
-  fmt_percent(columns = c(wp, wp_chg),
+  fmt_percent(columns = c(home_wp, home_wp_chg),
               decimals = 1) %>% 
   #apply new style to all column headers
   tab_style(
@@ -196,14 +207,48 @@ top_plays %>%
 
 ```{r}
 play_by_play_2024 %>% 
-  filter(game_id == '2024_07_NYJ_PIT',
+  filter(game_id == '2024_08_NYG_PIT',
          play_type %in% c('run', 'pass')) %>% 
   group_by(posteam, play_type) %>% 
-  summarise(success_rate = round(100*mean(success, na.rm = TRUE), 1),
-            avg_epa = round(mean(epa, na.rm = TRUE), 2),
+  summarise(success_rate = round(100*mean(success[!is.na(down)], na.rm = TRUE), 1),
+            avg_epa = round(mean(epa[penalty == 0], na.rm = TRUE), 2),
             .groups = 'drop') %>% 
   pivot_wider(names_from = play_type, values_from = success_rate:avg_epa)
 ```
+
+```{r}
+play_by_play_2024 %>% 
+  filter(game_id == '2024_08_NYG_PIT',
+         play_type %in% c('run', 'pass')) %>% 
+  group_by(posteam) %>% 
+  summarise(success_rate = round(100*mean(success, na.rm = TRUE), 1),
+            avg_epa = round(mean(epa, na.rm = TRUE), 2),
+            .groups = 'drop')
+```
+
+```{r}
+play_by_play_2024 %>% 
+  filter(game_id == '2024_08_NYG_PIT',
+         !is.na(posteam)) %>% 
+  # select(success, everything())
+  group_by(posteam, home_team) %>% 
+  summarise(success_rate = mean(success[!is.na(down)], na.rm = TRUE), 
+            epa_turnover = sum(epa[interception == 1 | fumble_lost == 1], na.rm = TRUE),
+            epa_3rd_4th = sum(epa[down == 3 | down == 4 & penalty == 0], na.rm = TRUE),
+            epa_special_penalties = sum(epa[special == 1 | penalty == 1], na.rm = TRUE))
+  pivot_wider(names_from = posteam, values_from = epa_turnover:epa_special_penalties) %>% 
+  # need to come up with a better way to do this part
+  mutate(epa_turnover_diff = epa_turnover_PIT - epa_turnover_NYG,
+         # this one isn't matching...
+         epa_3rd_4th_diff = epa_3rd_4th_PIT - epa_3rd_4th_NYG,
+         epa_special_penalties_diff = epa_special_penalties_PIT - epa_special_penalties_NYG) %>% 
+  select(home_team, contains('diff'), everything())
+
+            avg_epa = round(mean(epa, na.rm = TRUE), 2),
+            .groups = 'drop')
+```
+
+
 
 ```{r}
 play_by_play_2024 %>% 
