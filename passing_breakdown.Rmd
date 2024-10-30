@@ -256,6 +256,22 @@ pbp_plus_ftn_2022_24 %>%
 ```
 
 
+```{r}
+pbp_plus_ftn_2022_24 %>% 
+  # select(contains('is_'))
+  filter(season == 2024,
+         !is.na(passer),
+         play_type == 'pass',
+         is_no_huddle == TRUE) %>% 
+  group_by(posteam, passer, is_no_huddle) %>% 
+  summarise(mean_epa = mean(epa, na.rm = TRUE),
+            plays = n(), 
+            .groups = 'drop') %>% 
+  filter(plays >= 10) %>% 
+  mutate(mean_epa_rank = rank(-mean_epa)) %>% 
+  arrange(mean_epa_rank)
+```
+
 
 
 ## Pat Mahomes' interception misfortune in 2024 -- what do our priors tell us about his likely performance from here? 
