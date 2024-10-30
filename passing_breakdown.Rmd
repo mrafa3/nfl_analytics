@@ -1,0 +1,389 @@
+---
+title: "Passing Breakdown with {nflverse}"
+output: html_notebook
+---
+
+# Setup
+
+```{r libraries, include=TRUE, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(nflverse)
+library(gt)
+library(gtExtras)
+library(gtUtils)
+library(ggtext)
+library(ggrepel)
+library(patchwork)
+library(ggfx)
+library(ggimage)
+library(glue)
+library(ggiraph)
+```
+
+```{r nfl_analytics_theme, include=TRUE}
+nfl_analytics_theme <- function(..., base_size = 12) {
+  
+  theme(
+    text = element_text(family = "Lexend",
+                        size = base_size,
+                        color = "black"),
+    axis.ticks = element_blank(),
+    axis.title = element_text(face = "bold"),
+    axis.text = element_text(face = "bold"),
+    plot.title.position = "plot",
+    plot.title = element_markdown(size = 16,
+                                  vjust = .02,
+                                  hjust = 0.5),
+    plot.subtitle = element_markdown(hjust = 0.5),
+    plot.caption = element_markdown(size = 8),
+    panel.grid.minor = element_blank(),
+    panel.grid.major =  element_line(color = "#d0d0d0"),
+    panel.background = element_rect(fill = "#f7f7f7"),
+    plot.background = element_rect(fill = "#f7f7f7"),
+    panel.border = element_blank(),
+    legend.background = element_rect(color = "#F7F7F7"),
+    legend.key = element_rect(color = "#F7F7F7"),
+    legend.title = element_text(face = "bold", hjust = .5),
+    strip.text = element_text(face = "bold"))
+}
+```
+
+```{r teams, include=TRUE}
+teams <- nflreadr::load_teams(current = TRUE)
+```
+
+```{r pbp_2022_24, include=TRUE}
+pbp_2022_24 <- load_pbp(seasons=2022:2024) %>% 
+  filter(season_type == 'REG')
+```
+
+FTN's charting (which is available in the {nflverse} package), contains additional play-level information that can be added to the `load_pbp()` data.
+
+```{r ftn_charting_2022_24, include=TRUE}
+ftn_charting_2022_24 <- load_ftn_charting(seasons = 2022:2024)
+```
+
+```{r pbp_plus_ftn_2022_24, include=TRUE}
+pbp_plus_ftn_2022_24 <- pbp_2022_24 %>% 
+  left_join(x=.,
+            y=ftn_charting_2022_24,
+            by=c('game_id' = 'nflverse_game_id',
+                 'play_id' = 'nflverse_play_id',
+                 'season'))
+```
+
+
+# Play action passing in Pittsburgh
+
+```{r play_action, include=TRUE}
+(play_action <- pbp_plus_ftn_2022_24 %>% 
+  filter(play_type == 'pass',
+         # sack == 0,
+         qb_scramble == 0,
+         !is.na(is_play_action)) %>% 
+  group_by(season, posteam, is_play_action) %>% 
+  summarise(plays = n(),
+            sum_epa = sum(qb_epa, na.rm = TRUE),
+            .groups = 'drop') %>% 
+  mutate(epa_per_play = sum_epa / plays) %>% 
+  pivot_wider(names_from = is_play_action, values_from = plays:epa_per_play) %>% 
+  mutate(percent_play_action = plays_TRUE / (plays_TRUE + plays_FALSE)) %>% 
+  arrange(-percent_play_action) %>% 
+  group_by(season) %>% 
+  mutate(rank_percent_play_action = rank(-percent_play_action)) %>% 
+  select(percent_play_action, everything()))
+
+play_action %>% 
+  filter(posteam == 'PIT')
+```
+
+```{r}
+play_action_geom_col <- function(x){
+  plot <- play_action %>% 
+  filter(season == x) %>% 
+  ggplot(.,
+         aes(x=percent_play_action,
+             y=reorder(posteam, percent_play_action),
+             alpha=if_else(posteam == 'PIT', 'PIT', 'Other'))) + 
+  geom_col() + 
+  labs(x='Play Action Rate (%)',
+       y='',
+       title=x) + 
+  scale_x_continuous(labels = scales::percent_format(),
+                     limits = c(0, .4)) + 
+  scale_fill_manual(values = c('PIT' = 1,
+                               'Other' = .2)) + 
+  nfl_analytics_theme() + 
+  theme(legend.position = 'none')
+  
+  return(plot)
+}
+```
+
+```{r}
+play_action_geom_col(2022) + play_action_geom_col(2023) + play_action_geom_col(2024)
+```
+Pittsburgh under Matt Canada finished in the bottom 4 or 3 teams with play action rate in 2022 and 2023, respectively. Midway through the 2024 season, Arthur Smith is using play action at over twice the rates seen under Matt Canada.
+
+**Have these plays been successful?**
+
+In a limited sample (two starts), **Russel Wilson is ranks 3rd among QBs** in EPA per play on play action passes.
+
+```{r play_action_2024, include=TRUE}
+(play_action_2024 <- pbp_plus_ftn_2022_24 %>% 
+  filter(season == 2024,
+         play_type == 'pass',
+         qb_scramble == 0) %>% 
+  group_by(posteam, passer_id, passer, is_play_action) %>% 
+  summarise(plays = n(),
+            sum_epa = sum(qb_epa, na.rm = TRUE),
+            .groups = 'drop') %>% 
+  mutate(epa_per_play = sum_epa / plays) %>% 
+  pivot_wider(names_from = is_play_action, values_from = plays:epa_per_play) %>% 
+  mutate(percent_play_action = plays_TRUE / (plays_TRUE + plays_FALSE),
+         ttl_dropbacks_wo_sacks = plays_FALSE + plays_TRUE) %>% 
+  select(percent_play_action, everything()) %>% 
+  filter(ttl_dropbacks_wo_sacks >= 60) %>%
+  arrange(-epa_per_play_TRUE))
+```
+
+```{r}
+play_action_2024 %>% 
+  ggplot(.,
+         aes(x=epa_per_play_FALSE,
+             y=epa_per_play_TRUE,
+             alpha=if_else(posteam == 'PIT', 'PIT', 'Other'))) +  
+  geom_point(aes(size=plays_TRUE)) + 
+  ggrepel::geom_text_repel(aes(label=passer),
+                           family='Lexend', box.padding = .5) + 
+  geom_hline(yintercept = 0, color='black', linetype='dashed', linewidth=.8) + 
+  geom_vline(xintercept = 0, color='black', linetype='dashed', linewidth=.8) + 
+  scale_alpha_manual(values = c('PIT' = 1,
+                                'Other' = .2)) + 
+  labs(x='EPA per play: NOT play action',
+       y='EPA per play: IS play action') + 
+  nfl_analytics_theme() + 
+  theme(legend.position = 'none')
+```
+
+```{r top_10_perc_play_action_plot, include=TRUE}
+play_action_2024 %>% 
+  slice_max(percent_play_action, n=10) %>% 
+  ggplot(., 
+         aes(x = reorder(passer_id, -percent_play_action), 
+             y = percent_play_action)) +
+  geom_col(aes(color=posteam,
+               fill=posteam)) +
+  with_outer_glow(geom_text(aes(label = passer),
+                            position = position_stack(vjust = .98),
+                            angle = 90, hjust = .98, color = "white",
+                            family = "Roboto",
+                            fontface = "bold", size = 8),
+                  sigma = 6, expand = 1, color = "black") +
+  scale_y_continuous(breaks = scales::pretty_breaks(),
+                     labels = scales::percent_format(),
+                     expand = c(0,0)) +
+  labs(x='',
+       y='Play Action Rate (%)',
+       title = "**Top 10 QBs in play action rate in 2024**",
+       subtitle = "*Excludes QB Scrambles, minimum 60 dropbacks*",
+       caption = "Source: {nflverse} package<br>and FTN charting data<br>Inspo: Brad Congelio") +
+  nfl_analytics_theme() + 
+  scale_fill_nfl(type = 'primary') + 
+  scale_color_nfl(type = 'secondary') + 
+  # adds headshots
+  theme(axis.text.x = nflplotR::element_nfl_headshot(size = 1))
+```
+
+```{r top_10_epa_per_play_playaction_plot, include=TRUE}
+play_action_2024 %>% 
+  slice_max(epa_per_play_TRUE, n=10) %>% 
+  ggplot(., 
+         aes(x = reorder(passer_id, -epa_per_play_TRUE), 
+             y = epa_per_play_TRUE)) +
+  geom_col(aes(color=posteam,
+               fill=posteam)) +
+  with_outer_glow(geom_text(aes(label = passer),
+                            position = position_stack(vjust = .98),
+                            angle = 90, hjust = .98, color = "white",
+                            family = "Roboto",
+                            fontface = "bold", size = 7),
+                  sigma = 6, expand = 1, color = "black") +
+  geom_text(aes(label = plays_TRUE),
+            position = position_stack(vjust = .05),
+            color = "white", family = "Roboto", fontface = "bold", size = 3) + 
+  annotate("text", label='Attempts', x=1, y=.06, 
+           color='white', family = "Roboto", fontface = "bold", size = 3) + 
+  scale_y_continuous(breaks = scales::pretty_breaks(),
+                     expand = c(0,0)) +
+  labs(x='',
+       y='EPA per play',
+       title = "**Top 10 QBs in EPA per play on play action in 2024**",
+       subtitle = "*Excludes QB scrambles, minimum 20 play action attempts<br>Through Week 8*",
+       caption = "Source: {nflverse} package<br>and FTN charting data<br>Inspo: Brad Congelio") +
+  nfl_analytics_theme() + 
+  scale_fill_nfl(type = 'primary') + 
+  scale_color_nfl(type = 'secondary') + 
+  # adds headshots
+  theme(axis.text.x = nflplotR::element_nfl_headshot(size = 1))
+```
+
+
+
+
+## Pat Mahomes' interception misfortune in 2024 -- what do our priors tell us about his likely performance from here? 
+
+```{r passing_epa, include=TRUE}
+(passing_epa <- pbp_plus_ftn_2022_24 %>% 
+  filter(season == 2024) %>% 
+  filter(!is.na(passer)) %>% 
+  group_by(passer, posteam) %>% 
+  summarise(plays = n(),
+            count_drops = sum(is_drop, na.rm = TRUE),
+            interceptions = sum(interception, na.rm = TRUE),
+            sum_qb_epa = sum(qb_epa, na.rm = TRUE),
+            sum_qb_epa_drops = sum(qb_epa[is_drop == TRUE], na.rm = TRUE),
+            sum_qb_epa_int = sum(qb_epa[interception == 1], na.rm = TRUE),
+            sum_qb_epa_sack = sum(qb_epa[sack == 1], na.rm = TRUE),
+            sum_qb_epa_incomplete = sum(qb_epa[incomplete_pass == 1], na.rm = TRUE),
+            sum_qb_epa_dpi = sum(qb_epa[penalty_type == 'Defensive Pass Interference'], na.rm = TRUE),
+            .groups = 'drop') %>% 
+  filter(plays >= 25) %>% 
+  mutate(
+    across(
+      starts_with("sum"),
+      list(
+        # mean = ~round(mean(., na.rm = TRUE), 2),
+        # zscore = ~scale(.),
+        mean_centered = ~. - mean(., na.rm = TRUE)
+      ),
+      .names = "{.fn}_{.col}"
+    )) %>% 
+  arrange(-sum_qb_epa_int))
+```
+
+```{r}
+passing_epa %>% 
+  ggplot(.,
+         aes(x=interceptions,
+             y=sum_qb_epa_int,
+             alpha=if_else(passer == 'P.Mahomes', 'P.Mahomes', 'Other'))) +
+  geom_point() +
+  ggrepel::geom_text_repel(aes(label = passer),
+                           box.padding = .5) + 
+  scale_x_continuous(breaks = scales::pretty_breaks(),
+                     labels = scales::comma_format()) +
+  scale_y_continuous(breaks = scales::pretty_breaks(),
+                     labels = scales::comma_format()) +
+  scale_alpha_manual(values = c('P.Mahomes' = 1,
+                                'Other' = .2)) + 
+  nfl_analytics_theme() + 
+  theme(legend.position = 'none')
+```
+
+```{r player_stats_17_24, include=TRUE}
+player_stats_17_24 <- load_player_stats(seasons = 2017:2024,
+                                        stat_type = 'offense')
+```
+
+
+```{r}
+(int_rate_17_24 <- player_stats_17_24 %>% 
+  filter(position == 'QB') %>% 
+  group_by(recent_team, player_name, season) %>% 
+  summarise(
+    across(
+      c(attempts, interceptions),
+      list(
+        sum = ~sum(., na.rm = TRUE)
+      ),
+      .names = "{.fn}_{.col}"
+    ),
+    .groups = 'drop') %>% 
+  mutate(int_rate = sum_interceptions / sum_attempts) %>% 
+  filter(sum_attempts >= 100))
+```
+
+
+```{r}
+int_rate_17_24 %>% 
+  filter(player_name == 'P.Mahomes') %>% 
+  ggplot(.,
+         aes(x=season,
+             y=int_rate)) + 
+  geom_col() + 
+  geom_mean_lines(aes(y0=int_rate)) + 
+  geom_text(aes(label = paste(round(int_rate*100, 1), '%', sep='')),
+            nudge_y = -.002, color='white', family='Lexend', fontface='bold') + 
+  scale_y_continuous(labels = scales::percent) + 
+  scale_x_continuous(breaks = seq(2017, 2024, 1)) +
+  labs(x='',
+       y='INT rate') + 
+  ggtitle('Pat Mahomes has **doubled** his career average interception rate',
+          subtitle = 'INT rate = interceptions / attempts<br>Does not exclude throw aways') + 
+  nfl_analytics_theme()
+```
+
+```{r int_rate_jitter, include=TRUE, fig.width=10, fig.height=6.2}
+int_rate_jitter <- int_rate_17_24 %>% 
+  filter(season >= 2018) %>% 
+  group_by(season) %>% 
+  mutate(rank_int_rate = rank(int_rate),
+         is_mahomes = if_else(player_name == 'P.Mahomes', 'P.Mahomes', 'Other')) %>% 
+  ggplot(.,
+         aes(x=season,
+             y=int_rate,
+             color=is_mahomes,
+             alpha=is_mahomes)) + 
+  # geom_jitter(height = 0) + 
+  geom_jitter_interactive(aes(data_id = player_name, tooltip = player_name),
+                          height = 0) + 
+  ggtitle(glue("<span style='color:#E31837'>**Pat Mahomes**</span> usually boasts some of the lowest INT rates<br>in the NFL -- not in 2024")) + 
+  scale_color_manual(values = c('P.Mahomes' = '#E31837',
+                                'Other' = 'black')) + 
+  scale_alpha_manual(values = c('P.Mahomes' = 1,
+                                'Other' = .2)) + 
+  scale_y_continuous(labels = scales::percent) + 
+  scale_x_continuous(breaks = seq(2017, 2024, 1)) +
+  labs(x='',
+       y='INT rate') + 
+  nfl_analytics_theme() + 
+  theme(legend.position = 'none')
+```
+
+
+```{r}
+interactive_plot <- girafe(
+  ggobj = int_rate_jitter
+)
+```
+
+```{r int_rate_jitter_interactive, include=TRUE, fig.width=10, fig.height=6.2}
+int_rate_jitter <- int_rate_17_24 %>% 
+  filter(season >= 2018) %>% 
+  group_by(season) %>% 
+  mutate(rank_int_rate = rank(int_rate),
+         is_mahomes = if_else(player_name == 'P.Mahomes', 'P.Mahomes', 'Other'),
+         player_name_clean = stringr::str_replace_all(player_name, "'", "")) %>%  # Remove single quotes
+  ggplot(aes(x = season,
+             y = int_rate,
+             color = is_mahomes,
+             alpha = is_mahomes)) + 
+  geom_jitter_interactive(aes(
+    data_id = player_name_clean, 
+    tooltip = glue("{player_name_clean} ({season}): {scales::percent(int_rate)}")
+  ), height = 0) + 
+  ggtitle(glue("Pat Mahomes usually boasts some of the lowest INT rates
+in the NFL -- not in 2024")) + 
+  scale_color_manual(values = c('P.Mahomes' = '#E31837', 'Other' = 'black')) + 
+  scale_alpha_manual(values = c('P.Mahomes' = 1, 'Other' = 0.2)) + 
+  scale_y_continuous(labels = scales::percent) + 
+  scale_x_continuous(breaks = seq(2017, 2024, 1)) +
+  labs(x = '', y = 'INT rate') + 
+  nfl_analytics_theme() + 
+  theme(legend.position = 'none')
+
+interactive_plot <- girafe(ggobj = int_rate_jitter)
+
+interactive_plot
+```

@@ -13,7 +13,9 @@ In this repo, I'll explore the `nflverse::` packages along with a variety of dat
 | [unexpected_points.Rmd](unexpected_points.Rmd) | Explores some of the data and attempts to replicate/understand the metrics used in the [Unexpected Points Substack](https://www.unexpectedpoints.com/). |
 | [receiver_tracking_metrics_espn.Rmd](receiver_tracking_metrics_espn.Rmd) | Scrapes the [ESPN Analytics](https://espnanalytics.com/receivers) site and explores the Receiver Tracking Metrics, including receiver ratings like Open Score, Catch Score, and YAC score. |
 | [defensive_adv_stats.Rmd](defensive_adv_stats.Rmd) | Exploring the relationship between defensive EPA per play and defensive success rate -- is "bend don't break" sustainable? (in progress) |
+| [passing_breakdown.Rmd](passing_breakdown.Rmd) | Exploring some passing-related questions as they come, including EPA, play action success, and more. |
 
+![2024 EPA per play on play action passes](images/epa_play_action.png)
 
 ![2024 NFL Quarterbacks and EPA metrics](images/ranked_qb_epa.png)
 
