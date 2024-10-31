@@ -182,6 +182,7 @@ mutate(epa_quadrant = if_else(avg_defensive_epa > 0 & avg_offensive_epa < 0, 'Qu
 
 
 ```{r defensive_epa_runpass, include=TRUE}
+week_plot <- play_by_play_2024 %>% summarise(max(week)) %>% pull()
 (defensive_epa_runpass <- play_by_play_2024 %>% 
   filter(play_type %in% c('run', 'pass')) %>% 
   group_by(defteam, play_type) %>% 
@@ -191,23 +192,21 @@ mutate(epa_quadrant = if_else(avg_defensive_epa > 0 & avg_offensive_epa < 0, 'Qu
   left_join(x=.,
             y=teams,
             by=c('defteam' = 'team_abbr')) %>% 
-    ggplot(.,
+  ggplot(.,
          aes(x=run,
              y=pass)) + 
+  geom_mean_lines(x0=0, y0=0,
+                  color = "black", linewidth = 0.8, linetype = "dashed") + 
   geom_image(aes(image = team_logo_wikipedia), size=.1) +
-  geom_hline(yintercept = 0,
-             color = "black", linewidth = 0.8, linetype = "dashed") +
-  geom_vline(xintercept = 0,
-             color = "black", linewidth = 0.8, linetype = "dashed") +
   scale_x_continuous(breaks = scales::pretty_breaks(),
                      transform = 'reverse') +
   scale_y_continuous(breaks = scales::pretty_breaks(),
                      transform = 'reverse') +
   labs(x='Against the Run',
        y='Against the Pass',
-       caption='Source: nflreadr:: package') + 
+       caption='Source: {nflreadr} package') + 
   ggtitle('**Average Defensive Expected Points Added**: Run vs. Pass',
-          subtitle = '2024 season (through Week 7)') + 
+          subtitle = glue::glue('2024 season (through Week {week_plot})')) + 
   nfl_analytics_theme() + 
   theme(legend.position = 'none'))
 ```
