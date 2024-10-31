@@ -50,6 +50,7 @@ teams <- nflreadr::load_teams(current = TRUE)
 ```{r play_by_play_2024, include=TRUE}
 play_by_play_2024 <- load_pbp(seasons = most_recent_season())
 ```
+
 ```{r defensive_epa_success, include=TRUE}
 defensive_epa_success <- play_by_play_2024 %>% 
   filter(special != 1,
@@ -91,7 +92,7 @@ turnovers <- play_by_play_2024 %>%
 defensive_epa_success %>% 
   ggplot(.,
          aes(x=def_success,
-             y=epa_per_play)) + 
+             y=rev(epa_per_play))) + 
   # geom_point() + 
   geom_mean_lines(aes(x0=def_success,
                       y0=epa_per_play),
