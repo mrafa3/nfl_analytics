@@ -94,23 +94,16 @@ What's the combined record of teams in each quadrant?
 df_team_epa %>% 
   ggplot(.,
          aes(x=avg_offensive_epa,
-             y=avg_defensive_epa,
-             alpha=if_else(team == 'PIT', 'PIT', 'Other'))) + 
-  # geom_point(color=df_team_epa$team_color, size=3.5) + 
+             y=avg_defensive_epa)) + 
   geom_image(aes(image = team_logo_wikipedia), size=.1) +
-  geom_hline(yintercept = 0,
-             color = "black", linewidth = 0.8, linetype = "dashed") +
-  geom_vline(xintercept = 0,
-             color = "black", linewidth = 0.8, linetype = "dashed") +
-  scale_alpha_manual(values = c('PIT' = 1,
-                                'Other' = .2)) + 
-  scale_x_continuous(breaks = scales::pretty_breaks(),
-                     labels = scales::comma_format()) +
+  geom_mean_lines(x0=0, y0=0,
+                  color = "black", linewidth = 0.8, linetype = "dashed") + 
+  scale_x_continuous(breaks = scales::pretty_breaks()) +
   scale_y_continuous(breaks = scales::pretty_breaks(),
-                     labels = scales::comma_format()) +
+                     transform = 'reverse') +
   labs(x='Average Offensive EPA',
        y='Average Defensive EPA',
-       caption='Source: nflreadr:: package') + 
+       caption='Source: {nflreadr} package') + 
   ggtitle('**Average Expected Points Added**: Offense vs. Defense',
           subtitle = '2024 season') + 
   nfl_analytics_theme() + 
@@ -172,7 +165,8 @@ play_by_play_2024 %>%
        title = "**Defensive Expected Points Added per Play**",
        subtitle = "*2024 Regular Season*",
        caption = "*Inspired by An Introduction to NFL Analytics with R*") + 
-  scale_x_continuous(breaks = scales::pretty_breaks(n = 6)) +
+  scale_x_continuous(breaks = scales::pretty_breaks(n = 6),
+                     transform = 'reverse') +
   scale_y_discrete(expand = c(.05, 0)) +
   nfl_analytics_theme() +
   theme(axis.text.y = element_blank())
@@ -206,9 +200,9 @@ mutate(epa_quadrant = if_else(avg_defensive_epa > 0 & avg_offensive_epa < 0, 'Qu
   geom_vline(xintercept = 0,
              color = "black", linewidth = 0.8, linetype = "dashed") +
   scale_x_continuous(breaks = scales::pretty_breaks(),
-                     labels = scales::comma_format()) +
+                     transform = 'reverse') +
   scale_y_continuous(breaks = scales::pretty_breaks(),
-                     labels = scales::comma_format()) +
+                     transform = 'reverse') +
   labs(x='Against the Run',
        y='Against the Pass',
        caption='Source: nflreadr:: package') + 
