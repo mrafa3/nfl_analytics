@@ -14,6 +14,7 @@ library(ggrepel)
 library(patchwork)
 library(ggimage)
 library(glue)
+library(grid)
 library(ggiraph)
 ```
 
@@ -57,10 +58,15 @@ This looks like a good article on [EPA](https://bestballstats.com/expected-point
 play_by_play_2024 <- load_pbp(seasons=most_recent_season())
 ```
 
+```{r week_plot, include=TRUE}
+week_plot <- play_by_play_2024 %>% summarise(max(week)) %>% pull()
+```
+
 # Offensive EPA 
 
 ```{r team_offensive_epa, include=TRUE}
 (team_offensive_epa <- play_by_play_2024 %>% 
+  filter(play_type %in% c('run', 'pass')) %>% 
   group_by(posteam) %>% 
   filter(!is.na(posteam)) %>% 
   summarise(avg_offensive_epa = mean(epa, na.rm = TRUE),
@@ -70,6 +76,7 @@ play_by_play_2024 <- load_pbp(seasons=most_recent_season())
 
 ```{r team_defensive_epa, include=TRUE}
 (team_defensive_epa <- play_by_play_2024 %>% 
+  filter(play_type %in% c('run', 'pass')) %>% 
   group_by(defteam) %>% 
   filter(!is.na(posteam)) %>% 
   summarise(avg_defensive_epa = mean(epa, na.rm = TRUE),
@@ -88,26 +95,86 @@ play_by_play_2024 <- load_pbp(seasons=most_recent_season())
 ```
 
 
-What's the combined record of teams in each quadrant?
+From here, I'm borrowing some design concepts from [The F5 Substack](https://thef5.substack.com/p/how-to-diamond-plots-in-r) to make this plot more readable.
 
 ```{r}
-df_team_epa %>% 
+# find the max absolute value of off/def epa for our plot
+sort(abs(c(max(df_team_epa$avg_offensive_epa), max(df_team_epa$avg_defensive_epa), min(df_team_epa$avg_offensive_epa), min(df_team_epa$avg_defensive_epa))), decreasing = T)
+```
+
+```{r}
+# set max and min for off and def epa (want them to be symmetric for chart)
+off_epa_min <- -.25
+off_epa_max <- .25
+def_epa_min <- -.25
+def_epa_max <- .25
+
+# set rotation to 45 degrees
+rotation <- 45
+```
+
+```{r fig.height=6, fig.width=6, warning=FALSE}
+(epa_per_play_plot <- df_team_epa %>% 
   ggplot(.,
          aes(x=avg_offensive_epa,
              y=avg_defensive_epa)) + 
-  geom_image(aes(image = team_logo_wikipedia), size=.1) +
-  geom_mean_lines(x0=0, y0=0,
-                  color = "black", linewidth = 0.8, linetype = "dashed") + 
-  scale_x_continuous(breaks = scales::pretty_breaks()) +
+  # copied code from The F5 -- I want to look at a simpler
+  annotate("rect", xmin = (off_epa_max + off_epa_min) / 2, xmax = off_epa_max,
+           ymin = def_epa_min, ymax = (def_epa_max + def_epa_min) / 2, fill= "#a6dba0", alpha = .5, color = 'transparent') +
+  annotate("rect", xmin = off_epa_min, xmax = (off_epa_max + off_epa_min) / 2,
+           ymin = (def_epa_max + def_epa_min) / 2, ymax = def_epa_max, fill= "#c2a5cf", alpha = .5, color = 'transparent') +
+  annotate("rect", xmin = (off_epa_max + off_epa_min) / 2, xmax = off_epa_max,
+           ymin = (def_epa_max + def_epa_min) / 2, ymax = def_epa_max, fill= "#f7f7f7", alpha = .5, color = 'transparent')  +
+  annotate("rect", xmin = off_epa_min, xmax = (off_epa_max + off_epa_min) / 2,
+           ymin = def_epa_min, ymax = (def_epa_max + def_epa_min) / 2, fill= "#f7f7f7", alpha = .5, color = 'transparent') +
+  # also copied -- I will break down a better way
+  # hack together a few chart guides (ie, 'Good D, Bad D')
+  geom_richtext(aes(x = .20, y = .20, label = "Good O, Bad D"), angle = -1 * rotation, size = 2.75, fontface = 'bold', color = 'black', fill = "#f7f7f7") +
+  geom_richtext(aes(x = -.20, y = -.20, label = "Bad O, Good D"), angle = -1 * rotation,  size = 2.75, fontface = 'bold', color = 'black', fill = "#f7f7f7") +
+  geom_richtext(aes(x = -.205, y = .205, label = "Bad O, Bad D"), angle = -1 * rotation, size = 2.75, fontface = 'bold', color = 'white',  fill = "#762a83", label.colour = 'black') +
+  geom_richtext(aes(x = .215, y = -.215, label = "Good O, Good D"), angle = -1 * rotation,  size = 2.75, fontface = 'bold', color = 'white', fill = "#1b7837", label.colour = 'black') +
+  # note: I've been using geom_image(), but this appears to not have a transparent background which geom_nfl_logos() offers
+  geom_nfl_logos(aes(team_abbr = team), width = 0.09, alpha = 0.75, angle = -1 * rotation) +
   scale_y_continuous(breaks = scales::pretty_breaks(),
-                     transform = 'reverse') +
-  labs(x='Average Offensive EPA',
-       y='Average Defensive EPA',
-       caption='Source: {nflreadr} package') + 
-  ggtitle('**Average Expected Points Added**: Offense vs. Defense',
-          subtitle = '2024 season') + 
+                     transform = 'reverse') + 
+  scale_x_continuous(breaks = scales::pretty_breaks()) + 
+  coord_equal(clip = 'off') +
+  # add axis labels
+  labs(
+    x = "Offensive EPA/play",
+    y = "Defensive EPA/play"
+    # caption = 'Source: {nflreadr} package<br>Inspo: *The F5 Newsletter* &<br>*Introduction to NFL Analytics with R*'
+    ) +
+    annotate(geom = 'text', x = .235, y = -.2, label = "**Expected Points Added per Play**: Offense vs. Defense", angle = -1 * rotation, vjust = -3.5, fontface = 'bold', size = 4) +
+  annotate(geom = 'text', x = .235, y = -.2, label = glue::glue('2024 season, through Week {week_plot}'), angle = -1 * rotation, vjust = -2.5, size = 3) +
   nfl_analytics_theme() + 
-  theme(legend.position = 'none')
+  theme(legend.position = 'none',
+        plot.margin = margin(1.15, .5, .5, -.25, unit = 'in')))
+        # plot.margin = margin(t = 70, r = 70, b = 70, l = 70))) # Adjust these values as needed
+```
+
+```{r fig.height=6, fig.width=6, warning=FALSE}
+png(".//images/epa_diamond_plot.png", res = 300, width = 6, height = 6, units = 'in', bg = '#f7f7f7')
+
+print(epa_per_play_plot, vp=viewport(angle=rotation,  
+                                     width = unit(6, "in"), 
+                                     height = unit(6, "in")))
+dev.off()
+```
+
+
+
+```{r fig.height=6, fig.width=6, warning=FALSE}
+# Create a rotated viewport and draw the plot
+grid.newpage()
+pushViewport(viewport(angle = 45))
+print(epa_per_play_plot, newpage = FALSE)
+popViewport()
+```
+
+
+```{r}
+# ggsave('.//images/epa_diamond_plot.png', dpi = 300, width = 6, height = 6, units = 'in')
 ```
 
 ```{r}
@@ -181,8 +248,8 @@ mutate(epa_quadrant = if_else(avg_defensive_epa > 0 & avg_offensive_epa < 0, 'Qu
 ```
 
 
+
 ```{r defensive_epa_runpass, include=TRUE}
-week_plot <- play_by_play_2024 %>% summarise(max(week)) %>% pull()
 (defensive_epa_runpass <- play_by_play_2024 %>% 
   filter(play_type %in% c('run', 'pass')) %>% 
   group_by(defteam, play_type) %>% 
