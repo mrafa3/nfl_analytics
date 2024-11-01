@@ -69,7 +69,8 @@ pbp_plus_ftn_2022_24 <- pbp_2022_24 %>%
             y=ftn_charting_2022_24,
             by=c('game_id' = 'nflverse_game_id',
                  'play_id' = 'nflverse_play_id',
-                 'season'))
+                 'season',
+                 'week'))
 ```
 
 
@@ -124,6 +125,8 @@ play_action_geom_col <- function(x){
 play_action_geom_col(2022) + play_action_geom_col(2023) + play_action_geom_col(2024)
 ```
 Pittsburgh under Matt Canada finished in the bottom 4 or 3 teams with play action rate in 2022 and 2023, respectively. Midway through the 2024 season, Arthur Smith is using play action at over twice the rates seen under Matt Canada.
+
+Also -- check out Atlanta! Arthur Smith's former team went from 1st or 2nd in the league to dead last this year.
 
 **Have these plays been successful?**
 
@@ -255,7 +258,7 @@ pbp_plus_ftn_2022_24 %>%
   arrange(-yards_per_attempt)
 ```
 
-```{r}
+```{r epa_run_or_play_action, include=TRUE}
 (epa_run_or_play_action <- pbp_plus_ftn_2022_24 %>% 
   filter(penalty == 0,
          two_point_attempt == 0,
@@ -286,13 +289,87 @@ epa_run_or_play_action %>%
   ggplot(.,
          aes(x=epa_per_play_run,
              y=epa_per_play_play_action)) + 
-  # geom_point() + 
   geom_smooth(method=lm,
               se=FALSE) + 
   geom_mean_lines(aes(x0=0,
                       y0=0),
                   color='black', linewidth=.8, linetype='dashed') + 
   geom_image(aes(image = team_logo_wikipedia), size=.1) +
+  labs(title='Do you need a strong run game for play action to work?',
+       subtitle=glue::glue('EPA per play of play action vs run plays in {use_season}'),
+       x='EPA per play from run plays',
+       y='EPA per play from play action plays',
+       caption='Source: {nflverse}<br>Excludes penalties & 2-point attempts') + 
+  scale_x_continuous(breaks = scales::pretty_breaks()) +
+  scale_y_continuous(breaks = scales::pretty_breaks()) + 
+  nfl_analytics_theme()
+```
+
+*But could this seasonal view miss week-to-week variations?*
+
+```{r weekly_epa_run_or_play_action, include=TRUE}
+(weekly_epa_run_or_play_action <- pbp_plus_ftn_2022_24 %>% 
+  filter(penalty == 0,
+         two_point_attempt == 0,
+         play_type %in% c('run', 'pass')) %>% 
+  mutate(run_or_play_action = if_else(play_type == 'pass' & is_play_action == TRUE, 'play_action', 
+                              if_else(play_type == 'pass' & is_play_action == FALSE, 'pass', 'run'))) %>% 
+  filter(run_or_play_action %in% c('run', 'play_action')) %>% 
+  group_by(season, week, posteam, run_or_play_action) %>% 
+  summarise(plays = n(),
+            ttl_epa = sum(epa, na.rm = TRUE),
+            .groups = 'drop') %>% 
+  mutate(epa_per_play = ttl_epa / plays) %>% 
+  pivot_wider(names_from = run_or_play_action, values_from = plays:epa_per_play))
+```
+
+```{r}
+weekly_epa_run_or_play_action <- weekly_epa_run_or_play_action %>% 
+  left_join(x=.,
+            y=teams,
+            by=c('posteam' = 'team_abbr'))
+```
+
+
+```{r}
+weekly_epa_run_or_play_action %>% 
+  filter(season == use_season) %>% 
+  ggplot(.,
+         aes(x=epa_per_play_run,
+             y=epa_per_play_play_action)) + 
+  geom_smooth(method=lm,
+              se=FALSE) + 
+  geom_mean_lines(aes(x0=0,
+                      y0=0),
+                  color='black', linewidth=.8, linetype='dashed') + 
+  geom_image(aes(image = team_logo_wikipedia), size=.05) +
+  labs(title='Do you need a strong run game for play action to work?',
+       subtitle=glue::glue('EPA per play of play action vs run plays in {use_season}'),
+       x='EPA per play from run plays',
+       y='EPA per play from play action plays',
+       caption='Source: {nflverse}<br>Excludes penalties & 2-point attempts') + 
+  scale_x_continuous(breaks = scales::pretty_breaks()) +
+  scale_y_continuous(breaks = scales::pretty_breaks()) + 
+  nfl_analytics_theme()
+```
+
+
+
+```{r}
+weekly_epa_run_or_play_action %>% 
+  filter(season == use_season) %>% 
+  filter(posteam == 'PIT') %>% 
+  ggplot(.,
+         aes(x=epa_per_play_run,
+             y=epa_per_play_play_action)) + 
+  geom_smooth(method=lm,
+              se=FALSE) + 
+  geom_mean_lines(aes(x0=0,
+                      y0=0),
+                  color='black', linewidth=.8, linetype='dashed') + 
+  geom_image(aes(image = team_logo_wikipedia), size=.1) +
+  ggrepel::geom_text_repel(aes(label=week),
+                           family='Lexend', size=6, box.padding = .5, force=10) + 
   labs(title='Do you need a strong run game for play action to work?',
        subtitle=glue::glue('EPA per play of play action vs run plays in {use_season}'),
        x='EPA per play from run plays',
