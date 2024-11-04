@@ -552,3 +552,124 @@ pbp_plus_ftn_2022_24 %>%
   mutate(mean_epa_rank = rank(-mean_epa)) %>% 
   arrange(mean_epa_rank)
 ```
+
+
+```{r}
+boolean_vars <- pbp_plus_ftn_2022_24 %>% 
+  select(where(is.logical)) %>% 
+  names()
+```
+
+```{r}
+summarize_by_groups <- function(data, grouping_vars, summary_var) {
+  grouping_vars %>%
+    map(~data %>%
+          group_by(posteam, passer, across(.x)) %>%
+          summarise(mean = mean(!!sym(summary_var), na.rm = TRUE)) %>%
+          mutate(grouped_by = .x)
+    )
+}
+
+~list(tibble(
+              group_value = .x,
+              mean_value = mean(!!sym(summary_var), na.rm = TRUE)
+
+pbp_plus_ftn_2022_24 %>% 
+  summarize_by_groups(., boolean_vars, 'epa')
+
+pbp_plus_ftn_2022_24 %>% 
+  filter(season == 2024) %>% 
+  group_by(posteam, passer, across(boolean_vars)) %>% 
+  summarise(mean_epa = mean(epa, na.rm = TRUE))
+  summarize_by_groups(., . %>% select(where(is.logical)), 'epa')
+```
+
+
+```{r}
+# Assuming your data frame is called pbp_data
+analyze_play_characteristics <- function(data, charting_fields) {
+  # Verify fields exist
+  available_fields <- charting_fields[charting_fields %in% names(data)]
+  
+  if(length(available_fields) == 0) {
+    stop("None of the specified charting fields exist in the dataset")
+  }
+    
+  data %>%
+    summarize(
+      across(all_of(available_fields),
+            ~list(tibble(
+              characteristic_value = .x,
+              plays = n(),
+              epa_per_play = mean(epa, na.rm = TRUE),
+              success_rate = mean(success, na.rm = TRUE)
+            ))),
+      .by = all_of(available_fields)
+    ) %>%
+    pivot_longer(
+      cols = all_of(available_fields),
+      names_to = "play_characteristic",
+      values_to = "metrics"
+    ) %>%
+    unnest(metrics)
+}
+
+# Example usage:
+charting_fields <- c("is_play_action", "is_qb_out_of_pocket")
+boolean_vars
+
+
+analyze_play_characteristics(data = pbp_plus_ftn_2022_24, 
+                             charting_fields = charting_fields)
+```
+
+```{r}
+pbp_plus_ftn_2022_24 %>%
+  group_by(is_play_action) %>%
+  summarise(
+    plays = n(),
+    epa_per_play = mean(epa, na.rm = TRUE),
+    success_rate = mean(success, na.rm = TRUE)
+  )
+
+analyze_play_characteristics <- function(data, fields) {
+  map_dfr(fields, function(field) {
+    data %>%
+      group_by(posteam, season, across(all_of(field))) %>%
+      summarise(
+        plays = n(),
+        epa_per_play = mean(epa, na.rm = TRUE),
+        success_rate = mean(success, na.rm = TRUE),
+        .groups = "drop"
+      ) %>%
+      mutate(play_characteristic = field) %>%
+      rename(characteristic_value = !!sym(field))
+  })
+}
+
+test <- analyze_play_characteristics(pbp_plus_ftn_2022_24, boolean_vars)
+
+test %>% 
+  filter(posteam == 'PIT',
+         play_characteristic == 'is_play_action')
+```
+
+
+
+```{r}
+pbp_plus_ftn_2022_24 %>% 
+  filter(season == 2024) %>% 
+  group_by(posteam, passer) %>% 
+  # summarise(across(boolean_vars))
+  mutate(
+    across(
+      boolean_vars,
+      list(
+        mean = ~round(mean(epa, na.rm = TRUE), 2),
+        # zscore = ~scale(.),
+        mean_centered = ~. - mean(., na.rm = TRUE)
+      ),
+      .names = "mean_epa_{.col}"
+    )) 
+```
+
