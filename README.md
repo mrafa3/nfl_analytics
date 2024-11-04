@@ -14,6 +14,7 @@ In this repo, I'll explore the `nflverse::` packages along with a variety of dat
 | [receiver_tracking_metrics_espn.Rmd](receiver_tracking_metrics_espn.Rmd) | Scrapes the [ESPN Analytics](https://espnanalytics.com/receivers) site and explores the Receiver Tracking Metrics, including receiver ratings like Open Score, Catch Score, and YAC score. |
 | [defensive_adv_stats.Rmd](defensive_adv_stats.Rmd) | Exploring the relationship between defensive EPA per play and defensive success rate -- is "bend don't break" sustainable? (in progress) |
 | [passing_breakdown.Rmd](passing_breakdown.Rmd) | Exploring some passing-related questions as they come, including EPA, play action success, and more. |
+| [weekly_cuts.Rmd](weekly_cuts.Rmd) | Working on a structure to analyze effectiveness week to week, summarizing offensive EPA and success rates (**in progress**). |
 
 ![2024 EPA per play on play action passes](images/epa_play_action.png)
 

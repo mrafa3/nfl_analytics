@@ -1,0 +1,229 @@
+---
+title: "Cutting PBP for weekly analysis of effectiveness"
+output: html_notebook
+---
+
+# Setup
+
+```{r libraries, include=TRUE, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(nflverse)
+library(gt)
+library(gtExtras)
+library(gtUtils)
+library(ggtext)
+library(ggrepel)
+library(patchwork)
+library(ggfx)
+library(ggimage)
+library(glue)
+library(ggiraph)
+```
+
+```{r nfl_analytics_theme, include=TRUE}
+nfl_analytics_theme <- function(..., base_size = 12) {
+  
+  theme(
+    text = element_text(family = "Lexend",
+                        size = base_size,
+                        color = "black"),
+    axis.ticks = element_blank(),
+    axis.title = element_markdown(face = "bold"),
+    axis.text = element_markdown(face = "bold"),
+    plot.title.position = "plot",
+    plot.title = element_markdown(size = 16,
+                                  vjust = .02,
+                                  hjust = 0.5),
+    plot.subtitle = element_markdown(hjust = 0.5),
+    plot.caption = element_markdown(size = 8),
+    panel.grid.minor = element_blank(),
+    panel.grid.major =  element_line(color = "#d0d0d0"),
+    panel.background = element_rect(fill = "#f7f7f7"),
+    plot.background = element_rect(fill = "#f7f7f7"),
+    panel.border = element_blank(),
+    legend.background = element_rect(color = "#F7F7F7"),
+    legend.key = element_rect(color = "#F7F7F7"),
+    legend.title = element_text(face = "bold", hjust = .5),
+    strip.text = element_text(face = "bold"))
+}
+```
+
+```{r teams, include=TRUE}
+# teams <- nflreadr::load_teams(current = TRUE)
+```
+
+```{r pbp_2022_24, include=TRUE}
+pbp_2022_24 <- load_pbp(seasons=2022:2024) %>% 
+  filter(season_type == 'REG')
+```
+
+FTN's charting (which is available in the {nflverse} package), contains additional play-level information that can be added to the `load_pbp()` data.
+
+```{r ftn_charting_2022_24, include=TRUE}
+ftn_charting_2022_24 <- load_ftn_charting(seasons = 2022:2024)
+```
+
+```{r pbp_plus_ftn_2022_24, include=TRUE}
+pbp_plus_ftn_2022_24 <- pbp_2022_24 %>% 
+  left_join(x=.,
+            y=ftn_charting_2022_24,
+            by=c('game_id' = 'nflverse_game_id',
+                 'play_id' = 'nflverse_play_id',
+                 'season',
+                 'week'))
+```
+
+## Weekly cuts (in progress)
+
+```{r week_plot, include=TRUE}
+week_plot <- pbp_plus_ftn_2022_24 %>% filter(season == 2024) %>% summarise(max(week)) %>% pull()
+```
+
+**Here, I'm thinking of setting up a structure that will allow for quick cuts of weekly data across many dimensions. Just starting to think through that structure.**
+
+```{r}
+pbp_plus_ftn_2022_24 %>% 
+  # select(contains('is_'))
+  filter(season == 2024,
+         !is.na(passer),
+         play_type == 'pass',
+         is_no_huddle == TRUE) %>% 
+  group_by(posteam, passer, is_no_huddle) %>% 
+  summarise(mean_epa = mean(epa, na.rm = TRUE),
+            plays = n(), 
+            .groups = 'drop') %>% 
+  filter(plays >= 10) %>% 
+  mutate(mean_epa_rank = rank(-mean_epa)) %>% 
+  arrange(mean_epa_rank)
+```
+
+```{r}
+boolean_vars <- c("is_no_huddle", "is_motion", "is_play_action", 
+                  "is_screen_pass", "is_rpo", "is_qb_out_of_pocket")
+                  
+double_vars <- c("down", "n_blitzers")
+
+summary_vars <- c("play_type", "pass_length", "run_gap", "run_location")
+
+# "is_trick_play", "is_interception_worthy", "is_throw_away", 
+                  # "is_catchable_ball", "is_contested_ball", "is_created_reception", 
+                  # "is_drop", "is_qb_sneak", "is_qb_fault_sack", 
+```
+
+
+```{r}
+analyze_play_characteristics <- function(data, fields) {
+  map_dfr(fields, function(field) {
+    data %>%
+      group_by(season, week, game_id, posteam, defteam, across(all_of(field))) %>%
+      summarise(
+        plays = n(),
+        epa_per_play = mean(epa, na.rm = TRUE),
+        success_rate = mean(success, na.rm = TRUE),
+        .groups = "drop"
+      ) %>%
+      mutate(play_characteristic = field) %>%
+      rename(characteristic_value = !!sym(field))
+  })
+}
+
+test <- analyze_play_characteristics(pbp_plus_ftn_2022_24, summary_vars)
+
+test %>% 
+  filter(posteam == 'PIT',
+         season == 2024,
+         !is.na(characteristic_value),
+         play_characteristic == 'is_play_action')
+
+
+test %>% 
+  filter(season == 2024, 
+         week == 7,
+         posteam == 'PIT',
+         !is.na(characteristic_value)) %>% 
+  arrange(play_characteristic, -epa_per_play)
+```
+
+Charting data appears to be NAs for no play situations, like ends of quarters.
+
+```{r}
+filter_posteam <- 'PIT'
+
+pbp_plus_ftn_2022_24 %>% 
+  filter(season == 2024,
+         posteam == 'PIT') %>% 
+  distinct(play_type)
+
+plot_play_types <- function(data, pos_team = 'PIT', use_season = 2024, play_var){
+  data %>% 
+  filter(season == use_season, 
+         posteam == pos_team,
+         play_characteristic == play_var,
+         !is.na(characteristic_value),
+         # characteristic_value == TRUE,
+         posteam == filter_posteam) %>% 
+    ggplot(.,
+         aes(x=epa_per_play,
+             y=characteristic_value)) + 
+    geom_boxplot() + 
+    geom_jitter(aes(color=filter_posteam),
+                size=1.5, width = 0, height = .05) + 
+    labs(title=glue::glue(play_var, pos_team, use_season)) + 
+    nfl_analytics_theme() + 
+    scale_color_nfl(type = 'secondary')
+}
+
+plot_play_types(data = test, 
+                use_season = 2024,
+                pos_team = 'PIT',
+                play_var = 'run_gap')
+
+```
+
+```{r}
+test %>% 
+  filter(season == 2024, 
+         # play_characteristic == 'is_play_action',
+         !is.na(characteristic_value),
+         # characteristic_value == TRUE,
+         posteam == filter_posteam) %>% 
+  ggplot(.,
+         aes(x=epa_per_play,
+             y=play_characteristic)) + 
+  geom_boxplot() + 
+  geom_jitter(aes(color=filter_posteam),
+              size=1.5, width = 0, height = .05) + 
+  nfl_analytics_theme() + 
+  scale_color_nfl(type = 'secondary')
+```
+
+
+```{r}
+pbp_plus_ftn_2022_24 %>% 
+  names()
+  filter(game_id == '2024_07_NYJ_PIT') %>% 
+  filter(is.na(is_play_action))
+  group_by(posteam, is_play_action) %>% 
+  summarise(plays = n(),
+            epa_per_play = mean(epa, na.rm = TRUE),
+            .groups = 'drop') %>% 
+  filter(posteam == 'PIT')
+```
+
+
+```{r}
+pbp_plus_ftn_2022_24 %>% 
+  filter(season == 2024) %>% 
+  group_by(posteam, passer) %>% 
+  # summarise(across(boolean_vars))
+  mutate(
+    across(
+      boolean_vars,
+      list(
+        mean = ~round(mean(epa, na.rm = TRUE), 2),
+        # zscore = ~scale(.),
+        mean_centered = ~. - mean(., na.rm = TRUE)
+      ),
+      .names = "mean_epa_{.col}"
+    )) 
+```
