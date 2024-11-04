@@ -88,10 +88,10 @@ week_plot <- play_by_play_2024 %>% summarise(max(week)) %>% pull()
 (df_team_epa <- team_offensive_epa %>% 
   left_join(x=.,
             y=team_defensive_epa,
-            by='team') %>% 
-  left_join(x=.,
-            y=teams,
-            by=c('team' = 'team_abbr')))
+            by='team'))
+  # left_join(x=.,
+  #           y=teams,
+  #           by=c('team' = 'team_abbr')))
 ```
 
 
@@ -108,9 +108,6 @@ off_epa_min <- -.25
 off_epa_max <- .25
 def_epa_min <- -.25
 def_epa_max <- .25
-
-# set rotation to 45 degrees
-rotation <- 45
 ```
 
 ```{r fig.height=7, fig.width=7, warning=FALSE, include=FALSE}
@@ -118,28 +115,27 @@ rotation <- 45
   ggplot(.,
          aes(x=avg_offensive_epa,
              y=avg_defensive_epa)) + 
-  # copied code from The F5 -- I want to look at a simpler
-  annotate("rect", xmin = (off_epa_max + off_epa_min) / 2, xmax = off_epa_max,
-           ymin = def_epa_min, ymax = (def_epa_max + def_epa_min) / 2, fill= "#a6dba0", alpha = .5, color = 'transparent') +
-  annotate("rect", xmin = off_epa_min, xmax = (off_epa_max + off_epa_min) / 2,
-           ymin = (def_epa_max + def_epa_min) / 2, ymax = def_epa_max, fill= "#c2a5cf", alpha = .5, color = 'transparent') +
-  annotate("rect", xmin = (off_epa_max + off_epa_min) / 2, xmax = off_epa_max,
-           ymin = (def_epa_max + def_epa_min) / 2, ymax = def_epa_max, fill= "#f7f7f7", alpha = .5, color = 'transparent')  +
-  annotate("rect", xmin = off_epa_min, xmax = (off_epa_max + off_epa_min) / 2,
-           ymin = def_epa_min, ymax = (def_epa_max + def_epa_min) / 2, fill= "#f7f7f7", alpha = .5, color = 'transparent') +
+  annotate("rect", 
+           xmin = 0, xmax = off_epa_max, ymin = def_epa_min, ymax = 0, 
+           fill= "#a6dba0", alpha = .5) +
+  annotate("rect", 
+           xmin = off_epa_min, xmax = 0, ymin = 0, ymax = def_epa_max, 
+           fill= "#c2a5cf", alpha = .5) +
   # also copied -- I will break down a better way
   # hack together a few chart guides (ie, 'Good D, Bad D')
-  geom_richtext(aes(x = .2, y = .2, label = "Good O, Bad D"), size = 2.75, fontface = 'bold', color = 'black', fill = "#f7f7f7") +
-  geom_richtext(aes(x = -.2, y = -.2, label = "Bad O, Good D"), size = 2.75, fontface = 'bold', color = 'black', fill = "#f7f7f7") +
-  geom_richtext(aes(x = -.2, y = .2, label = "Bad O, Bad D"), size = 2.75, fontface = 'bold', color = 'white',  fill = "#762a83", label.colour = 'black') +
-  geom_richtext(aes(x = .195, y = -.2, label = "Good O, Good D"), size = 2.75, fontface = 'bold', color = 'white', fill = "#1b7837", label.colour = 'black') +
+  geom_richtext(aes(x = .2, y = .2, label = "Good O, Bad D"), 
+                size = 2.75, fontface = 'bold', color = 'black', fill = "#f7f7f7") +
+  geom_richtext(aes(x = -.2, y = -.2, label = "Bad O, Good D"), 
+                size = 2.75, fontface = 'bold', color = 'black', fill = "#f7f7f7") +
+  geom_richtext(aes(x = -.2, y = .2, label = "Bad O, Bad D"), 
+                size = 2.75, fontface = 'bold', color = 'white',  fill = "#762a83", label.colour = 'black') +
+  geom_richtext(aes(x = .195, y = -.2, label = "Good O, Good D"), 
+                size = 2.75, fontface = 'bold', color = 'white', fill = "#1b7837", label.colour = 'black') +
   # note: I've been using geom_image(), but this appears to not have a transparent background which geom_nfl_logos() offers
   geom_nfl_logos(aes(team_abbr = team), width = 0.09, alpha = 0.75) +
   scale_y_continuous(breaks = seq(-.25, .25, .05),
                      transform = 'reverse') + 
   scale_x_continuous(breaks = seq(-.25, .25, .05)) + 
-  coord_equal(clip = 'off') +
-  # add axis labels
   labs(
     title = '**Expected Points Added per Play**: Offense vs. Defense',
     subtitle = glue::glue('2024 season, through Week {week_plot}'),
@@ -157,9 +153,6 @@ play_by_play_2024 %>%
   group_by(posteam) %>% 
   summarise(avg_epa_per_play = mean(epa, na.rm = TRUE),
             .groups = 'drop') %>% 
-  left_join(x=.,
-            y=teams,
-            by=c('posteam' = 'team_abbr')) %>% 
   ggplot(.,
          aes(x = avg_epa_per_play,
              y = reorder(posteam, avg_epa_per_play))) +
@@ -168,12 +161,11 @@ play_by_play_2024 %>%
            width = 0.2) +
   geom_vline(xintercept = 0, color = "black") +
   scale_fill_identity() +
-  geom_image(aes(image = team_logo_wikipedia),
-             asp = 16/9, size = .035) +
+  geom_nfl_logos(aes(team_abbr = posteam), width = 0.03) +
   labs(x='EPA per Play',
        y='',
        title = "**Offensive Expected Points Added per Play**",
-       subtitle = "*2024 Regular Season*",
+       subtitle = glue::glue("2024 Regular Season, through Week {week_plot}"),
        caption = "*Inspired by An Introduction to NFL Analytics with R*") + 
   scale_x_continuous(breaks = scales::pretty_breaks(n = 6)) +
   scale_y_discrete(expand = c(.05, 0)) +
@@ -188,9 +180,6 @@ play_by_play_2024 %>%
   group_by(defteam) %>% 
   summarise(avg_epa_per_play = mean(epa, na.rm = TRUE),
             .groups = 'drop') %>% 
-  left_join(x=.,
-            y=teams,
-            by=c('defteam' = 'team_abbr')) %>% 
   ggplot(.,
          aes(x = avg_epa_per_play,
              y = reorder(defteam, -avg_epa_per_play))) +
@@ -199,26 +188,17 @@ play_by_play_2024 %>%
            width = 0.2) +
   geom_vline(xintercept = 0, color = "black") +
   scale_fill_identity() +
-  geom_image(aes(image = team_logo_wikipedia),
-             asp = 16/9, size = .035) +
+  geom_nfl_logos(aes(team_abbr = defteam), width = 0.03) +
   labs(x='EPA per Play',
        y='',
        title = "**Defensive Expected Points Added per Play**",
-       subtitle = "*2024 Regular Season*",
+       subtitle = glue::glue("2024 Regular Season, through Week {week_plot}"),
        caption = "*Inspired by An Introduction to NFL Analytics with R*") + 
   scale_x_continuous(breaks = scales::pretty_breaks(n = 6),
                      transform = 'reverse') +
   scale_y_discrete(expand = c(.05, 0)) +
   nfl_analytics_theme() +
   theme(axis.text.y = element_blank())
-```
-
-
-```{r epa_quadrant, include=TRUE}
-(df_team_epa <- df_team_epa %>% 
-mutate(epa_quadrant = if_else(avg_defensive_epa > 0 & avg_offensive_epa < 0, 'Quad1',
-                      if_else(avg_defensive_epa > 0 & avg_offensive_epa > 0, 'Quad2',
-                      if_else(avg_defensive_epa < 0 & avg_offensive_epa < 0, 'Quad3', 'Quad4')))))
 ```
 
 ```{r}
@@ -244,9 +224,6 @@ def_run_epa_min <- -.3
 def_run_epa_max <- .3
 def_pass_epa_min <- -.3
 def_pass_epa_max <- .3
-
-# set rotation to 45 degrees
-rotation <- 45
 ```
 
 ```{r defensive_epa_runpass, fig.width=7, fig.height=7, warning=FALSE, include=TRUE}
@@ -254,26 +231,27 @@ rotation <- 45
   ggplot(.,
          aes(x=run,
              y=pass)) + 
-  # geom_mean_lines(x0=0, y0=0,
-  #                 color = "black", linewidth = 0.8, linetype = "dashed") + 
-     annotate("rect", xmin = (off_epa_max + off_epa_min) / 2, xmax = off_epa_max,
-           ymin = def_epa_min, ymax = (def_epa_max + def_epa_min) / 2, fill= "#a6dba0", alpha = .5, color = 'transparent') +
-  annotate("rect", xmin = off_epa_min, xmax = (off_epa_max + off_epa_min) / 2,
-           ymin = (def_epa_max + def_epa_min) / 2, ymax = def_epa_max, fill= "#c2a5cf", alpha = .5, color = 'transparent') +
-  # annotate("rect", xmin = (off_epa_max + off_epa_min) / 2, xmax = off_epa_max,
-  #          ymin = (def_epa_max + def_epa_min) / 2, ymax = def_epa_max, fill= "#f7f7f7", alpha = .5, color = 'transparent')  +
-  # annotate("rect", xmin = off_epa_min, xmax = (off_epa_max + off_epa_min) / 2,
-  #          ymin = def_epa_min, ymax = (def_epa_max + def_epa_min) / 2, fill= "#f7f7f7", alpha = .5, color = 'transparent') +
-  geom_richtext(aes(x = .2, y = .2, label = "Bad P, Bad R"), size = 2.75, fontface = 'bold', color = 'white', fill = "#762a83") +
-  geom_richtext(aes(x = -.2, y = -.2, label = "Good P, Good R"), size = 2.75, fontface = 'bold', color = 'white', fill = "#1b7837") +
-  geom_richtext(aes(x = -.2, y = .2, label = "Good R, Bad P"), size = 2.75, fontface = 'bold', color = 'black',  fill = "#f7f7f7", label.colour = 'black') +
-  geom_richtext(aes(x = .195, y = -.2, label = "Good P, Bad R"), size = 2.75, fontface = 'bold', color = 'black', fill = "#f7f7f7", label.colour = 'black') +
+  annotate("rect", 
+              xmin = 0, xmax = def_run_epa_min, ymin = def_pass_epa_min, ymax = 0, 
+              fill= "#a6dba0", alpha = .5, color = 'transparent') +
+  annotate("rect", 
+           xmin = def_run_epa_max, xmax = 0, ymin = 0, ymax = def_pass_epa_max, 
+           fill= "#c2a5cf", alpha = .5, color = 'transparent') +
+  geom_richtext(aes(x = .25, y = .25, label = "Bad P, Bad R"), 
+                size = 2.75, fontface = 'bold', color = 'white', fill = "#762a83") +
+  geom_richtext(aes(x = -.245, y = -.25, label = "Good P, Good R"), 
+                size = 2.75, fontface = 'bold', color = 'white', fill = "#1b7837") +
+  geom_richtext(aes(x = -.25, y = .25, label = "Good R, Bad P"), 
+                size = 2.75, fontface = 'bold', color = 'black',  fill = "#f7f7f7", label.colour = 'black') +
+  geom_richtext(aes(x = .25, y = -.25, label = "Good P, Bad R"), 
+                size = 2.75, fontface = 'bold', color = 'black', fill = "#f7f7f7", label.colour = 'black') +
   # note: I've been using geom_image(), but this appears to not have a transparent background which geom_nfl_logos() offers
   geom_nfl_logos(aes(team_abbr = defteam), width = 0.09, alpha = 0.75) +
-  # geom_image(aes(image = team_logo_wikipedia), size=.1) +
   scale_x_continuous(breaks = scales::pretty_breaks(),
+                     limits = c(.3, -.3),
                      transform = 'reverse') +
   scale_y_continuous(breaks = scales::pretty_breaks(),
+                     limits = c(.3, -.3),
                      transform = 'reverse') +
   labs(x='Against the Run',
        y='Against the Pass',
