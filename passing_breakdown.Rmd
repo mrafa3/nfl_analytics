@@ -49,7 +49,7 @@ nfl_analytics_theme <- function(..., base_size = 12) {
 ```
 
 ```{r teams, include=TRUE}
-teams <- nflreadr::load_teams(current = TRUE)
+# teams <- nflreadr::load_teams(current = TRUE)
 ```
 
 ```{r pbp_2022_24, include=TRUE}
@@ -114,15 +114,25 @@ play_action_geom_col <- function(x){
                      limits = c(0, .4)) + 
   scale_fill_manual(values = c('PIT' = 1,
                                'Other' = .2)) + 
-  nfl_analytics_theme() + 
+  nfl_analytics_theme() +
   theme(legend.position = 'none')
   
   return(plot)
 }
 ```
 
-```{r}
-play_action_geom_col(2022) + play_action_geom_col(2023) + play_action_geom_col(2024)
+```{r warning=FALSE}
+play_action_geom_col(2022) + play_action_geom_col(2023) + play_action_geom_col(2024) + 
+  plot_annotation(
+    title = 'Steelers reversing the trend of low play action rates in 2024',
+    # subtitle = 'These 3 plots will reveal yet-untold secrets about our beloved data-set',
+    caption = 'Source: {nflverse} and FTN',
+    theme = theme(text = element_text(family = "Lexend"),
+                  plot.background = element_rect(fill = "#f7f7f7", color = NA),
+                  plot.margin = unit(c(0, 0, 0, 0), "pt"),
+                  # plot.background = element_rect(fill = "#f7f7f7"),
+                  panel.background = element_rect(fill = "#f7f7f7"))
+)
 ```
 Pittsburgh under Matt Canada finished in the bottom 4 or 3 teams with play action rate in 2022 and 2023, respectively. Midway through the 2024 season, Arthur Smith is using play action at over twice the rates seen under Matt Canada.
 
@@ -274,15 +284,7 @@ pbp_plus_ftn_2022_24 %>%
   pivot_wider(names_from = run_or_play_action, values_from = plays:epa_per_play))
 ```
 
-```{r}
-epa_run_or_play_action <- epa_run_or_play_action %>% 
-  left_join(x=.,
-            y=teams,
-            by=c('posteam' = 'team_abbr'))
-```
-
-
-```{r}
+```{r message=FALSE}
 use_season <- 2024
 epa_run_or_play_action %>% 
   filter(season == use_season) %>% 
@@ -294,7 +296,7 @@ epa_run_or_play_action %>%
   geom_mean_lines(aes(x0=0,
                       y0=0),
                   color='black', linewidth=.8, linetype='dashed') + 
-  geom_image(aes(image = team_logo_wikipedia), size=.1) +
+  geom_nfl_logos(aes(team_abbr = posteam), width = 0.05) +
   labs(title='Do you need a strong run game for play action to work?',
        subtitle=glue::glue('EPA per play of play action vs run plays in {use_season}'),
        x='EPA per play from run plays',
@@ -324,14 +326,6 @@ epa_run_or_play_action %>%
 ```
 
 ```{r}
-weekly_epa_run_or_play_action <- weekly_epa_run_or_play_action %>% 
-  left_join(x=.,
-            y=teams,
-            by=c('posteam' = 'team_abbr'))
-```
-
-
-```{r}
 weekly_epa_run_or_play_action %>% 
   filter(season == use_season) %>% 
   ggplot(.,
@@ -342,7 +336,7 @@ weekly_epa_run_or_play_action %>%
   geom_mean_lines(aes(x0=0,
                       y0=0),
                   color='black', linewidth=.8, linetype='dashed') + 
-  geom_image(aes(image = team_logo_wikipedia), size=.05) +
+  geom_nfl_logos(aes(team_abbr = posteam), width = 0.05) +
   labs(title='Do you need a strong run game for play action to work?',
        subtitle=glue::glue('EPA per play of play action vs run plays in {use_season}'),
        x='EPA per play from run plays',
@@ -367,7 +361,7 @@ weekly_epa_run_or_play_action %>%
   geom_mean_lines(aes(x0=0,
                       y0=0),
                   color='black', linewidth=.8, linetype='dashed') + 
-  geom_image(aes(image = team_logo_wikipedia), size=.1) +
+  geom_nfl_logos(aes(team_abbr = posteam), width = 0.05) +
   ggrepel::geom_text_repel(aes(label=week),
                            family='Lexend', size=6, box.padding = .5, force=10) + 
   labs(title='Do you need a strong run game for play action to work?',
