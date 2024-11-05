@@ -46,8 +46,8 @@ nfl_analytics_theme <- function(..., base_size = 12) {
 }
 ```
 
-```{r teams, include=TRUE}
-teams <- nflreadr::load_teams(current = TRUE)
+```{r teams, include=FALSE}
+# teams <- nflreadr::load_teams(current = TRUE)
 ```
 
 
@@ -110,7 +110,7 @@ def_epa_min <- -.25
 def_epa_max <- .25
 ```
 
-```{r fig.height=7, fig.width=7, warning=FALSE, include=FALSE}
+```{r fig.height=7, fig.width=7, warning=FALSE, include=TRUE}
 (epa_per_play_plot <- df_team_epa %>% 
   ggplot(.,
          aes(x=avg_offensive_epa,
@@ -201,16 +201,13 @@ play_by_play_2024 %>%
   theme(axis.text.y = element_blank())
 ```
 
-```{r}
+```{r run_pass_def_epa, include=TRUE}
 run_pass_def_epa <- play_by_play_2024 %>% 
   filter(play_type %in% c('run', 'pass')) %>% 
   group_by(defteam, play_type) %>% 
   summarise(avg_epa = mean(epa, na.rm = TRUE),
             .groups = 'drop') %>% 
-  pivot_wider(names_from = play_type, values_from = avg_epa) %>% 
-  left_join(x=.,
-            y=teams,
-            by=c('defteam' = 'team_abbr'))
+  pivot_wider(names_from = play_type, values_from = avg_epa)
 ```
 
 ```{r}
