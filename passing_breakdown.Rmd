@@ -98,8 +98,8 @@ play_action %>%
   filter(posteam == 'PIT')
 ```
 
-```{r}
-play_action_geom_col <- function(x){
+```{r plot_play_action_geom_col, include=TRUE}
+plot_play_action_geom_col <- function(x){
   plot <- play_action %>% 
   filter(season == x) %>% 
   ggplot(.,
@@ -111,26 +111,29 @@ play_action_geom_col <- function(x){
        y='',
        title=x) + 
   scale_x_continuous(labels = scales::percent_format(),
-                     limits = c(0, .4)) + 
+                     limits = c(0, .4),
+                     sec.axis = dup_axis()) + 
   scale_fill_manual(values = c('PIT' = 1,
                                'Other' = .2)) + 
-  nfl_analytics_theme() +
-  theme(legend.position = 'none')
+  # nfl_analytics_theme() +
+  theme_minimal() + 
+  theme(plot.title = element_text(face='bold'),
+        legend.position = 'none')
   
   return(plot)
 }
 ```
 
 ```{r warning=FALSE}
-play_action_geom_col(2022) + play_action_geom_col(2023) + play_action_geom_col(2024) + 
+plot_play_action_geom_col(2022) + plot_play_action_geom_col(2023) + plot_play_action_geom_col(2024) + 
   plot_annotation(
     title = 'Steelers reversing the trend of low play action rates in 2024',
     # subtitle = 'These 3 plots will reveal yet-untold secrets about our beloved data-set',
     caption = 'Source: {nflverse} and FTN',
     theme = theme(text = element_text(family = "Lexend"),
+                  plot.title = element_text(size=18, face='bold'), 
                   plot.background = element_rect(fill = "#f7f7f7", color = NA),
                   plot.margin = unit(c(0, 0, 0, 0), "pt"),
-                  # plot.background = element_rect(fill = "#f7f7f7"),
                   panel.background = element_rect(fill = "#f7f7f7"))
 )
 ```
