@@ -128,7 +128,6 @@ plot_play_action_geom_col <- function(x){
 plot_play_action_geom_col(2022) + plot_play_action_geom_col(2023) + plot_play_action_geom_col(2024) + 
   plot_annotation(
     title = 'Steelers reversing the trend of low play action rates in 2024',
-    # subtitle = 'These 3 plots will reveal yet-untold secrets about our beloved data-set',
     caption = 'Source: {nflverse} and FTN',
     theme = theme(text = element_text(family = "Lexend"),
                   plot.title = element_text(size=18, face='bold'), 

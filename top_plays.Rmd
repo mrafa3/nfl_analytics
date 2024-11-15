@@ -4,19 +4,26 @@ output: html_notebook
 ---
 
 ```{r libraries, include=TRUE, warning=FALSE, message=FALSE}
-library(tidyverse)
-library(nflverse)
-library(gt)
-library(gtExtras)
-library(gtUtils)
-library(ggtext)
-library(ggrepel)
-library(patchwork)
-library(ggimage)
+pacman::p_load(
+    tidyverse,
+    nflverse,
+    gt,
+    gtExtras,
+    gtUtils,
+    ggtext,
+    ggrepel,
+    patchwork,
+    ggimage,
+    showtext,
+    janitor,
+    scales,
+    glue,
+    here
+)    
 ```
 
-```{r nfl_analytics_theme, include=TRUE}
-nfl_analytics_theme <- function(..., base_size = 12) {
+```{r theme_nfl_analytics, include=TRUE}
+theme_nfl_analytics <- function(..., base_size = 12) {
   
   theme(
     text = element_text(family = "Lexend",
@@ -64,28 +71,35 @@ player_ids <- nflreadr::load_ff_playerids() %>%
 play_by_play_2024 <- nflreadr::load_pbp(seasons = most_recent_season())
 ```
 
+```{r week, include=TRUE}
+week <- play_by_play_2024 %>% 
+  summarise(max(week)) %>% 
+  pull()
+```
+
+
 ```{r get_pfr_data, include=TRUE}
-pfr_stats_pass <- nflreadr::load_pfr_advstats(seasons = 2024,
-                                              stat_type = 'pass',
-                                              summary_level = "week") %>% 
-  left_join(x=.,
-            y=player_ids,
-            by='pfr_player_id')
-
-pfr_stats_rec <- nflreadr::load_pfr_advstats(seasons = 2024,
-                                              stat_type = 'rec',
-                                              summary_level = "week") %>% 
-  left_join(x=.,
-            y=player_ids,
-            by='pfr_player_id')
-
-
-pfr_stats_rush <- nflreadr::load_pfr_advstats(seasons = 2024,
-                                              stat_type = 'rush',
-                                              summary_level = "week") %>% 
-  left_join(x=.,
-            y=player_ids,
-            by='pfr_player_id')
+# pfr_stats_pass <- nflreadr::load_pfr_advstats(seasons = 2024,
+#                                               stat_type = 'pass',
+#                                               summary_level = "week") %>% 
+#   left_join(x=.,
+#             y=player_ids,
+#             by='pfr_player_id')
+# 
+# pfr_stats_rec <- nflreadr::load_pfr_advstats(seasons = 2024,
+#                                               stat_type = 'rec',
+#                                               summary_level = "week") %>% 
+#   left_join(x=.,
+#             y=player_ids,
+#             by='pfr_player_id')
+# 
+# 
+# pfr_stats_rush <- nflreadr::load_pfr_advstats(seasons = 2024,
+#                                               stat_type = 'rush',
+#                                               summary_level = "week") %>% 
+#   left_join(x=.,
+#             y=player_ids,
+#             by='pfr_player_id')
 ```
 
 ```{r max_min_epa, include=TRUE, echo=FALSE}
@@ -99,13 +113,18 @@ min_epa <- play_by_play_2024 %>%
 ```
 
 
-
 ```{r top_plays, include=TRUE}
 top_plays <- play_by_play_2024 %>% 
   filter(str_detect(game_id, 'PIT')) %>% 
   left_join(x=.,
-            y=teams,
+            y=teams %>% select(team_abbr, team_wordmark),
             by=c('posteam' = 'team_abbr')) %>% 
+  left_join(x=.,
+            y=teams %>% select(team_abbr, home_nick = team_nick),
+            by=c('home_team' = 'team_abbr')) %>% 
+  left_join(x=.,
+            y=teams %>% select(team_abbr, away_nick = team_nick),
+            by=c('away_team' = 'team_abbr')) %>% 
   mutate(down_dist = paste(down, ydstogo, sep = '-'),
          score = paste(total_away_score, total_home_score, sep = '-'), 
          play_type = case_when(play_type == 'pass' ~ 'Pass',
@@ -114,36 +133,46 @@ top_plays <- play_by_play_2024 %>%
                                play_type == 'punt' ~ 'Punt',
                                TRUE ~ 'Other'),
          abs_epa = abs(epa),
-         home_wp_chg = lead(home_wp) - home_wp) %>% 
+         wp_post_play = wp + wpa) %>% 
   group_by(game_id) %>% 
   arrange(-abs_epa) %>%
-  select(game_id, team_wordmark, qtr, time, down_dist, yrdln, score, play_type,
-         desc, epa, home_wp, home_wp_chg) %>%
+  select(game_id, week, home_nick, away_nick, team_wordmark, qtr, time, down_dist, yrdln, score, play_type,
+         desc, epa, wp, wp_post_play) %>%
   # filtering out garbage time (Congelio book recommends using 95/5 split if you're going to remove garbage time at all)
-  filter(home_wp > .05 & home_wp < .95) %>% 
+  filter(wp > .05 & wp < .95) %>% 
   slice(1:10) %>% 
   ungroup()
 ```
-
 
 ```{r}
 top_plays %>% 
   distinct(game_id)
 ```
 
-```{r}
-play_by_play_2024 %>% 
-  # choose the game
-  filter(game_id == '2024_08_NYG_PIT',
-         qtr == 3) %>% 
-  select(contains('wp'), time, everything())
+```{r top_plays_params, include=TRUE}
+# choose the game
+game_id_param <- '2024_10_PIT_WAS'
+
+week_param <- top_plays %>% 
+  filter(game_id == game_id_param) %>% 
+  slice(1) %>% 
+  pull(week)
+
+home_team_param <- top_plays %>% 
+  filter(game_id == game_id_param) %>% 
+  slice(1) %>% 
+  pull(home_nick)
+
+away_team_param <- top_plays %>% 
+  filter(game_id == game_id_param) %>% 
+  slice(1) %>% 
+  pull(away_nick)
 ```
 
 
 ```{r gt_top_plays, include=TRUE}
 top_plays %>% 
-  # choose the game
-  filter(game_id == '2024_08_NYG_PIT') %>% 
+  filter(game_id == game_id_param) %>% 
   select(-game_id) %>% 
   gt() %>% 
   gt_img_rows(columns = team_wordmark) %>% 
@@ -156,15 +185,17 @@ top_plays %>%
              play_type = 'Play',
              desc = 'Description',
              # ydsnet = 'Yards',
-             home_wp = 'Win Prob (H)',
-             home_wp_chg = 'Win Prob Change (H)') %>% 
+             wp = 'Win Prob (pre-play)',
+             wp_post_play = 'Win Prob (post-play)') %>% 
   #add table title
-  tab_header(title = md("**Biggest Plays of the Game**"),
-             subtitle = md("Plays ranked by absolute value of Expected Points Added<br>Excluding garbage time where win probabilty is .05 < x < .95")) %>% 
+  tab_header(
+    title = md(glue("Top plays from the {home_team_param} vs {away_team_param}<br>Week {week_param} Matchup")),
+    # title = md("**Biggest Plays of the Game**"),
+    subtitle = md("Plays ranked by absolute value of Expected Points Added<br>Excluding garbage time where win probabilty is .05 < x < .95")) %>% 
   tab_source_note(source_note = 'Replicating work done by Kevin Cole in the Unexpected Points Substack newsletter') %>% 
   fmt_number(columns = epa,
              decimals = 2) %>% 
-  fmt_percent(columns = c(home_wp, home_wp_chg),
+  fmt_percent(columns = c(wp, wp_post_play),
               decimals = 1) %>% 
   #apply new style to all column headers
   tab_style(
