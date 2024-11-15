@@ -18,8 +18,8 @@ library(grid)
 library(ggiraph)
 ```
 
-```{r nfl_analytics_theme, include=TRUE}
-nfl_analytics_theme <- function(..., base_size = 12) {
+```{r theme_nfl_analytics, include=TRUE}
+theme_nfl_analytics <- function(..., base_size = 12) {
   
   theme(
     text = element_text(family = "Lexend",
@@ -58,8 +58,8 @@ This looks like a good article on [EPA](https://bestballstats.com/expected-point
 play_by_play_2024 <- load_pbp(seasons=most_recent_season())
 ```
 
-```{r week_plot, include=TRUE}
-week_plot <- play_by_play_2024 %>% summarise(max(week)) %>% pull()
+```{r week_max_param, include=TRUE}
+week_max_param <- play_by_play_2024 %>% summarise(max(week)) %>% pull()
 ```
 
 # Offensive EPA 
@@ -138,12 +138,12 @@ def_epa_max <- .25
   scale_x_continuous(breaks = seq(-.25, .25, .05)) + 
   labs(
     title = '**Expected Points Added per Play**: Offense vs. Defense',
-    subtitle = glue::glue('2024 season, through Week {week_plot}'),
+    subtitle = glue::glue('2024 season, through Week {week_max_param}'),
     x = "Offensive EPA/play",
     y = "Defensive EPA/play"
     # caption = 'Source: {nflreadr} package<br>Inspo: *The F5 Newsletter* &<br>*Introduction to NFL Analytics with R*'
     ) +
-  nfl_analytics_theme() + 
+  theme_nfl_analytics() + 
   theme(legend.position = 'none'))
 ```
 
@@ -165,11 +165,11 @@ play_by_play_2024 %>%
   labs(x='EPA per Play',
        y='',
        title = "**Offensive Expected Points Added per Play**",
-       subtitle = glue::glue("2024 Regular Season, through Week {week_plot}"),
+       subtitle = glue::glue("2024 Regular Season, through Week {week_max_param}"),
        caption = "*Inspired by An Introduction to NFL Analytics with R*") + 
   scale_x_continuous(breaks = scales::pretty_breaks(n = 6)) +
   scale_y_discrete(expand = c(.05, 0)) +
-  nfl_analytics_theme() +
+  theme_nfl_analytics() +
   theme(axis.text.y = element_blank())
 ```
 
@@ -192,12 +192,12 @@ play_by_play_2024 %>%
   labs(x='EPA per Play',
        y='',
        title = "**Defensive Expected Points Added per Play**",
-       subtitle = glue::glue("2024 Regular Season, through Week {week_plot}"),
+       subtitle = glue::glue("2024 Regular Season, through Week {week_max_param}"),
        caption = "*Inspired by An Introduction to NFL Analytics with R*") + 
   scale_x_continuous(breaks = scales::pretty_breaks(n = 6),
                      transform = 'reverse') +
   scale_y_discrete(expand = c(.05, 0)) +
-  nfl_analytics_theme() +
+  theme_nfl_analytics() +
   theme(axis.text.y = element_blank())
 ```
 
@@ -254,8 +254,8 @@ def_pass_epa_max <- .3
        y='Against the Pass',
        caption='Source: {nflreadr} package') + 
   ggtitle('**Average Defensive Expected Points Added**: Run vs. Pass',
-          subtitle = glue::glue('2024 season (through Week {week_plot})')) + 
-  nfl_analytics_theme() + 
+          subtitle = glue::glue('2024 season (through Week {week_max_param})')) + 
+  theme_nfl_analytics() + 
   theme(legend.position = 'none'))
 ```
 
