@@ -217,10 +217,10 @@ sort(abs(c(max(run_pass_def_epa$pass), max(run_pass_def_epa$run), min(run_pass_d
 
 ```{r}
 # set max and min for off and def epa (want them to be symmetric for chart)
-def_run_epa_min <- -.3
-def_run_epa_max <- .3
-def_pass_epa_min <- -.3
-def_pass_epa_max <- .3
+def_run_epa_min <- -.35
+def_run_epa_max <- .35
+def_pass_epa_min <- -.35
+def_pass_epa_max <- .35
 ```
 
 ```{r defensive_epa_runpass, fig.width=7, fig.height=7, warning=FALSE, include=TRUE}
@@ -238,7 +238,7 @@ def_pass_epa_max <- .3
                 size = 2.75, fontface = 'bold', color = 'white', fill = "#762a83") +
   geom_richtext(aes(x = -.245, y = -.25, label = "Good P, Good R"), 
                 size = 2.75, fontface = 'bold', color = 'white', fill = "#1b7837") +
-  geom_richtext(aes(x = -.25, y = .25, label = "Good R, Bad P"), 
+  geom_richtext(aes(x = -.25, y = .25, label = "Bad P, Good R"), 
                 size = 2.75, fontface = 'bold', color = 'black',  fill = "#f7f7f7", label.colour = 'black') +
   geom_richtext(aes(x = .25, y = -.25, label = "Good P, Bad R"), 
                 size = 2.75, fontface = 'bold', color = 'black', fill = "#f7f7f7", label.colour = 'black') +

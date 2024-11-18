@@ -20,8 +20,8 @@ library(glue)
 library(ggiraph)
 ```
 
-```{r nfl_analytics_theme, include=TRUE}
-nfl_analytics_theme <- function(..., base_size = 12) {
+```{r theme_nfl_analytics, include=TRUE}
+theme_nfl_analytics <- function(..., base_size = 12) {
   
   theme(
     text = element_text(family = "Lexend",
@@ -31,10 +31,8 @@ nfl_analytics_theme <- function(..., base_size = 12) {
     axis.title = element_markdown(face = "bold"),
     axis.text = element_markdown(face = "bold"),
     plot.title.position = "plot",
-    plot.title = element_markdown(size = 16,
-                                  vjust = .02,
-                                  hjust = 0.5),
-    plot.subtitle = element_markdown(hjust = 0.5),
+    plot.title = element_markdown(size = 16, vjust = .02, hjust = 0.5, face='bold'),
+    plot.subtitle = element_markdown(hjust = 0.5, lineheight = .3),
     plot.caption = element_markdown(size = 8),
     panel.grid.minor = element_blank(),
     panel.grid.major =  element_line(color = "#d0d0d0"),
@@ -115,7 +113,7 @@ plot_play_action_geom_col <- function(x){
                      sec.axis = dup_axis()) + 
   scale_fill_manual(values = c('PIT' = 1,
                                'Other' = .2)) + 
-  # nfl_analytics_theme() +
+  # theme_nfl_analytics() +
   theme_minimal() + 
   theme(plot.title = element_text(face='bold'),
         legend.position = 'none')
@@ -158,7 +156,7 @@ In a limited sample (two starts), **Russel Wilson is ranks 3rd among QBs** in EP
   mutate(percent_play_action = plays_TRUE / (plays_TRUE + plays_FALSE),
          ttl_dropbacks_wo_sacks = plays_FALSE + plays_TRUE) %>% 
   select(percent_play_action, everything()) %>% 
-  filter(ttl_dropbacks_wo_sacks >= 60) %>%
+  filter(ttl_dropbacks_wo_sacks > 75) %>%
   arrange(-epa_per_play_TRUE))
 ```
 
@@ -177,7 +175,7 @@ play_action_2024 %>%
                                 'Other' = .2)) + 
   labs(x='EPA per play: NOT play action',
        y='EPA per play: IS play action') + 
-  nfl_analytics_theme() + 
+  theme_nfl_analytics() + 
   theme(legend.position = 'none')
 ```
 
@@ -201,9 +199,9 @@ play_action_2024 %>%
   labs(x='',
        y='Play Action Rate (%)',
        title = "**Top 10 QBs in play action rate in 2024**",
-       subtitle = "*Excludes QB Scrambles, minimum 60 dropbacks*",
+       subtitle = glue("*Excludes QB Scrambles, minimum 75 dropbacks<br>Through Week {week_max_param}*"),
        caption = "Source: {nflverse} package<br>and FTN charting data<br>Inspo: Brad Congelio") +
-  nfl_analytics_theme() + 
+  theme_nfl_analytics() + 
   scale_fill_nfl(type = 'primary') + 
   scale_color_nfl(type = 'secondary') + 
   # adds headshots
@@ -234,9 +232,9 @@ play_action_2024 %>%
   labs(x='',
        y='EPA per play',
        title = "**Top 10 QBs in EPA per play on play action in 2024**",
-       subtitle = "*Excludes QB scrambles, minimum 20 play action attempts<br>Through Week 8*",
+       subtitle = glue("*Excludes QB scrambles, minimum 20 play action attempts<br>Through Week {week_max_param}*"),
        caption = "Source: {nflverse} package<br>and FTN charting data<br>Inspo: Brad Congelio") +
-  nfl_analytics_theme() + 
+  theme_nfl_analytics() + 
   scale_fill_nfl(type = 'primary') + 
   scale_color_nfl(type = 'secondary') + 
   # adds headshots
@@ -306,7 +304,7 @@ epa_run_or_play_action %>%
        caption='Source: {nflverse}<br>Excludes penalties & 2-point attempts') + 
   scale_x_continuous(breaks = scales::pretty_breaks()) +
   scale_y_continuous(breaks = scales::pretty_breaks()) + 
-  nfl_analytics_theme()
+  theme_nfl_analytics()
 ```
 
 *But could this seasonal view miss week-to-week variations?*
@@ -346,7 +344,7 @@ weekly_epa_run_or_play_action %>%
        caption='Source: {nflverse}<br>Excludes penalties & 2-point attempts') + 
   scale_x_continuous(breaks = scales::pretty_breaks()) +
   scale_y_continuous(breaks = scales::pretty_breaks()) + 
-  nfl_analytics_theme()
+  theme_nfl_analytics()
 ```
 
 
@@ -373,7 +371,7 @@ weekly_epa_run_or_play_action %>%
        caption='Source: {nflverse}<br>Excludes penalties & 2-point attempts') + 
   scale_x_continuous(breaks = scales::pretty_breaks()) +
   scale_y_continuous(breaks = scales::pretty_breaks()) + 
-  nfl_analytics_theme()
+  theme_nfl_analytics()
 ```
 
 
@@ -423,7 +421,7 @@ passing_epa %>%
                      labels = scales::comma_format()) +
   scale_alpha_manual(values = c('P.Mahomes' = 1,
                                 'Other' = .2)) + 
-  nfl_analytics_theme() + 
+  theme_nfl_analytics() + 
   theme(legend.position = 'none')
 ```
 
@@ -467,7 +465,7 @@ int_rate_17_24 %>%
        y='INT rate') + 
   ggtitle('Pat Mahomes has **doubled** his career average interception rate',
           subtitle = 'INT rate = interceptions / attempts<br>Does not exclude throw aways') + 
-  nfl_analytics_theme()
+  theme_nfl_analytics()
 ```
 
 ```{r int_rate_jitter, include=TRUE, fig.width=10, fig.height=6.2}
@@ -493,7 +491,7 @@ int_rate_jitter <- int_rate_17_24 %>%
   scale_x_continuous(breaks = seq(2017, 2024, 1)) +
   labs(x='',
        y='INT rate') + 
-  nfl_analytics_theme() + 
+  theme_nfl_analytics() + 
   theme(legend.position = 'none')
 ```
 
@@ -526,7 +524,7 @@ in the NFL -- not in 2024")) +
   scale_y_continuous(labels = scales::percent) + 
   scale_x_continuous(breaks = seq(2017, 2024, 1)) +
   labs(x = '', y = 'INT rate') + 
-  nfl_analytics_theme() + 
+  theme_nfl_analytics() + 
   theme(legend.position = 'none')
 
 interactive_plot <- girafe(ggobj = int_rate_jitter)
