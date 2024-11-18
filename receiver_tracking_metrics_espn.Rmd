@@ -4,36 +4,41 @@ output: html_notebook
 ---
 
 ```{r libraries, include=TRUE, warning=FALSE, message=FALSE}
-library(tidyverse)
-library(rvest)
-library(janitor)
-library(httr)
-library(jsonlite)
-library(nflverse)
-library(gt)
-library(gtExtras)
-library(ggtext)
-library(ggrepel)
-library(patchwork)
-library(ggimage)
-library(dlookr)
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(
+    tidyverse,
+    nflverse,
+    gt,
+    gtExtras,
+    rvest,
+    httr,
+    jsonlite,
+    patchwork,
+    ggtext,
+    ggrepel,
+    ggimage,
+    dlookr,
+    showtext,
+    sysfonts,
+    janitor,
+    glue,
+    here
+)    
+
+sysfonts::font_add_google("Lexend")
+showtext::showtext_auto()
 ```
 
 ```{r nfl_analytics_theme, include=TRUE}
 nfl_analytics_theme <- function(..., base_size = 12) {
-  
   theme(
-    text = element_text(family = "Lexend",
-                        size = base_size,
-                        color = "black"),
+    text = element_text(family = "Lexend", size = base_size, color = "black"),
     axis.ticks = element_blank(),
     axis.title = element_text(face = "bold"),
     axis.text = element_text(face = "bold"),
     plot.title.position = "plot",
-    plot.title = element_markdown(size = 16,
-                                  vjust = .02,
-                                  hjust = 0.5),
-    plot.subtitle = element_markdown(hjust = 0.5),
+    plot.title = element_markdown(size = 16, vjust = .02, hjust = 0.5, face = 'bold'),
+    plot.subtitle = element_markdown(hjust = 0.5, lineheight = .4),
     plot.caption = element_markdown(size = 8),
     panel.grid.minor = element_blank(),
     panel.grid.major =  element_line(color = "#d0d0d0"),
@@ -110,8 +115,6 @@ receiver_tracking %>%
                                 'Other' = 'black')) + 
   nfl_analytics_theme() +
   theme(legend.position = 'none')
-
-?pivot_longer()
 ```
 
 
@@ -180,7 +183,9 @@ player_stats_2024 %>%
 
 
 ```{r}
-pfr_stats_rec
+pfr_stats_rec %>% 
+  filter(tgt > 20) %>% 
+  arrange(-adot)
 ```
 
 ## What are the Steelers missing in their WR room? 
