@@ -58,17 +58,20 @@ theme_nfl_analytics <- function(..., base_size = 12) {
 ```
 
 Potential ideas to explore:
-* Regression of Stroud
-* Aaron Rodgers 
+
 * Benching Richardson
 * Arthur Smith play action
-* Tua
+* Dolphins: with and without Tua
+* Regression of Stroud, Rodgers 
 * 2 shell and passing down
 * Lions offensive efficiency
-* Jayden Daniels
+
 * New kickoff
-* Rookie QBs: performance and inconsistency
 * Vikings defensive consistency 
+
+#### Rookie QBs: performance and inconsistency
+
+* Jayden Daniels spotlight
 
 ```{r}
 pbp_2024 <- load_pbp(seasons = 2024)
@@ -83,12 +86,24 @@ pbp_2024 <- pbp_2024 %>%
                  'week'))
 ```
 
+```{r params, include=TRUE}
+max_week_param <- pbp_2024 %>% 
+  summarise(max(week)) %>% 
+  pull()
+```
+
 ```{r}
 pbp_2024 %>% 
+  select(contains('epa'))
+```
+
+
+```{r}
+(rookie_qb_epa_weekly_2024 <- pbp_2024 %>% 
   filter(passer %in% c('J.Daniels', 'C.Williams', 'B.Nix', 'D.Maye')) %>% 
-  group_by(game_id, week, posteam, passer) %>% 
+  group_by(game_id, week, posteam, passer, passer_id) %>% 
   summarise(across(
-    c('qb_epa', 'pass_attempt'),
+    c('qb_epa', 'pass_attempt', 'air_epa', 'yac_epa'),
     list(
         mean = ~round(mean(., na.rm = TRUE), 2),
         sum = ~round(sum(., na.rm = TRUE), 2)
@@ -96,12 +111,68 @@ pbp_2024 %>%
       .names = "{.fn}_{.col}"
     ),
     .groups = 'drop') %>% 
-  filter(sum_pass_attempt >= 10) %>% 
+  filter(sum_pass_attempt >= 10))
+```
+
+```{r}
+rookie_qb_epa_weekly_2024 %>% 
   ggplot(.,
          aes(x=week,
              y=mean_qb_epa,
-             color=passer)) + 
-  geom_line() + 
-  theme_nfl_analytics()
+             color=posteam)) + 
+  geom_line(linewidth=1.2) + 
+  geom_point(data=. %>% filter(week == max_week_param),
+             size=3) + 
+  geom_text(data=. %>% filter(week == max_week_param),
+            aes(x=week + 1,
+                label=passer),
+            family='Lexend') + 
+  geom_hline(yintercept = 0, color='black', linetype='dashed') + 
+  labs(title='EPA per dropback of 1st round rookies in 2024',
+       subtitle = glue('Through Week {max_week_param}'),
+       caption = 'Source: {nflverse} package<br>Minimum 10 attempts to qualify as a full game',
+       x='Week',
+       y='EPA/dropback') + 
+  theme_nfl_analytics() +
+  # theme(legend.position = 'top') + 
+  scale_color_nfl(type='secondary')
+  # theme(axis.title.y = element_text(angle=0))
+```
+
+
+```{r}
+pbp_2024 %>% 
+  # filter(passer %in% c('J.Daniels', 'C.Williams', 'B.Nix', 'D.Maye')) %>% 
+  filter(!is.na(passer)) %>% 
+  group_by(posteam, passer, passer_id) %>% 
+  summarise(across(
+    c('qb_epa', 'pass_attempt', 'air_epa', 'yac_epa'),
+    list(
+        mean = ~round(mean(., na.rm = TRUE), 5),
+        sum = ~round(sum(., na.rm = TRUE), 5)
+      ),
+      .names = "{.fn}_{.col}"
+    ),
+    .groups = 'drop') %>% 
+  filter(sum_pass_attempt >= 175) %>% 
+  mutate(rank_qb_epa = rank(-mean_qb_epa)) %>% 
+  filter(passer %in% c('J.Daniels', 'C.Williams', 'B.Nix', 'D.Maye')) %>%
+  ggplot(.,
+         aes(y=reorder(passer_id, mean_qb_epa),
+             x=mean_qb_epa)) + 
+  geom_col(aes(fill = if_else(mean_qb_epa >= 0,
+                              '#81fd02', '#8f55e5')),
+           width = 0.1) + 
+  ggrepel::geom_text_repel(aes(x=mean_qb_epa,
+                               label = glue('NFL rank: {rank_qb_epa}')), 
+                           family='Lexend') + 
+  labs(y='',
+       x='EPA per dropback',
+       title='EPA per dropback among rookie 1st-rounders in 2024', 
+       subtitle=glue('Through Week {max_week_param}'), 
+       caption='Source: {nflverse} package<br>Minimum 175 attempts') + 
+  theme_nfl_analytics() + 
+  theme(legend.position = 'none',
+        axis.text.y = nflplotR::element_nfl_headshot(size = 3))
 ```
 
