@@ -5,33 +5,45 @@ output: html_notebook
 
 # Setup
 
-```{r libraries, include=TRUE, warning=FALSE, message=FALSE}
-library(tidyverse)
-library(nflverse)
-library(gt)
-library(gtExtras)
-library(gtUtils)
-library(ggtext)
-library(ggrepel)
-library(patchwork)
-library(ggfx)
-library(ggimage)
-library(glue)
-library(ggiraph)
+```{r setup, include=TRUE, warning=FALSE, message=FALSE}
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(
+    tidyverse,
+    nflverse,
+    gt,
+    gtExtras,
+    gtUtils,
+    ggfx,
+    rvest,
+    httr,
+    jsonlite,
+    patchwork,
+    ggtext,
+    ggrepel,
+    ggimage,
+    dlookr,
+    showtext,
+    sysfonts,
+    janitor,
+    grid,
+    ggiraph,
+    glue,
+    here
+)    
+
+sysfonts::font_add_google("Lexend")
+showtext::showtext_auto()
 ```
 
 ```{r theme_nfl_analytics, include=TRUE}
 theme_nfl_analytics <- function(..., base_size = 12) {
-  
   theme(
-    text = element_text(family = "Lexend",
-                        size = base_size,
-                        color = "black"),
+    text = element_text(family = "Lexend", size = base_size, color = "black"),
     axis.ticks = element_blank(),
     axis.title = element_markdown(face = "bold"),
     axis.text = element_markdown(face = "bold"),
     plot.title.position = "plot",
-    plot.title = element_markdown(size = 16, vjust = .02, hjust = 0.5, face='bold'),
+    plot.title = element_markdown(size = 16, vjust = .02, hjust = 0.5),
     plot.subtitle = element_markdown(hjust = 0.5, lineheight = .3),
     plot.caption = element_markdown(size = 8),
     panel.grid.minor = element_blank(),

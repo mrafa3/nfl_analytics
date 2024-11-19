@@ -3,7 +3,7 @@ title: "Analyzing Receiver Tracking Metrics from ESPN"
 output: html_notebook
 ---
 
-```{r libraries, include=TRUE, warning=FALSE, message=FALSE}
+```{r setup, include=TRUE, warning=FALSE, message=FALSE}
 if (!require("pacman")) install.packages("pacman")
 pacman::p_load(
     tidyverse,
@@ -17,6 +17,7 @@ pacman::p_load(
     ggtext,
     ggrepel,
     ggimage,
+    ggfx,
     dlookr,
     showtext,
     sysfonts,

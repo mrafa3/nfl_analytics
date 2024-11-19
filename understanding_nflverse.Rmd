@@ -3,15 +3,35 @@ title: "Initial data analysis with nflverse packages"
 output: html_notebook
 ---
 
+```{r setup, include=TRUE, warning=FALSE, message=FALSE}
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(
+    tidyverse,
+    nflverse,
+    vroom,
+    gt,
+    gtExtras,
+    gtUtils,
+    ggfx,
+    rvest,
+    httr,
+    jsonlite,
+    patchwork,
+    ggtext,
+    ggrepel,
+    ggimage,
+    dlookr,
+    showtext,
+    sysfonts,
+    janitor,
+    grid,
+    ggiraph,
+    glue,
+    here
+)    
 
-```{r libraries, include=TRUE, warning=FALSE, message=FALSE}
-library(tidyverse)
-library(nflverse)
-library(vroom)
-library(ggtext)
-library(ggfx) # <1>
-library(ggimage)
-library(gt)
+sysfonts::font_add_google("Lexend")
+showtext::showtext_auto()
 ```
 
 1. For `with_outer_glow()` function to render names on bar charts nicely.
