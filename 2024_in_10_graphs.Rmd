@@ -37,7 +37,7 @@ showtext::showtext_auto()
 ```{r nfl_analytics_theme, include=TRUE}
 theme_nfl_analytics <- function(..., base_size = 12) {
   theme(
-    text = element_text(family = "Lexend", size = base_size, color = "black"),
+    text = element_text(family = "Lexend", size = base_size, color = "black", face='bold'),
     axis.ticks = element_blank(),
     axis.title = element_text(face = "bold"),
     axis.text = element_text(face = "bold"),
@@ -175,4 +175,26 @@ pbp_2024 %>%
   theme(legend.position = 'none',
         axis.text.y = nflplotR::element_nfl_headshot(size = 3))
 ```
+
+#### Kickoff eval
+
+```{r}
+kickoff_99_24 <- load_pbp(seasons = TRUE) %>% 
+  filter(play_type == 'kickoff',
+         season_type == 'REG')
+
+
+
+return_yards
+kick_distance
+touchback
+kickoff_attempt
+kickoff_inside_twenty
+kickoff_in_endzone
+kickoff_fair_catch
+touchdown
+season
+```
+
+
 
