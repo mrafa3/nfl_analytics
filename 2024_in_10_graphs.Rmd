@@ -1,0 +1,107 @@
+---
+title: "The 2024 NFL season in 10 graphs"
+output: html_notebook
+---
+
+
+```{r setup, include=TRUE, warning=FALSE, message=FALSE}
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(
+    tidyverse,
+    nflverse,
+    gt,
+    gtExtras,
+    gtUtils,
+    ggfx,
+    rvest,
+    httr,
+    jsonlite,
+    patchwork,
+    ggtext,
+    ggrepel,
+    ggimage,
+    dlookr,
+    showtext,
+    sysfonts,
+    janitor,
+    grid,
+    ggiraph,
+    glue,
+    here
+)    
+
+sysfonts::font_add_google("Lexend")
+showtext::showtext_auto()
+```
+
+```{r nfl_analytics_theme, include=TRUE}
+theme_nfl_analytics <- function(..., base_size = 12) {
+  theme(
+    text = element_text(family = "Lexend", size = base_size, color = "black"),
+    axis.ticks = element_blank(),
+    axis.title = element_text(face = "bold"),
+    axis.text = element_text(face = "bold"),
+    plot.title.position = "plot",
+    plot.title = element_markdown(size = 16, vjust = .02, hjust = 0.5),
+    plot.subtitle = element_markdown(hjust = 0.5),
+    plot.caption = element_markdown(size = 8),
+    panel.grid.minor = element_blank(),
+    panel.grid.major =  element_line(color = "#d0d0d0"),
+    panel.background = element_rect(fill = "#f7f7f7"),
+    plot.background = element_rect(fill = "#f7f7f7"),
+    panel.border = element_blank(),
+    legend.background = element_rect(color = "#F7F7F7"),
+    legend.key = element_rect(color = "#F7F7F7"),
+    legend.title = element_text(face = "bold", hjust = .5),
+    strip.text = element_text(face = "bold"))
+}
+```
+
+Potential ideas to explore:
+* Regression of Stroud
+* Aaron Rodgers 
+* Benching Richardson
+* Arthur Smith play action
+* Tua
+* 2 shell and passing down
+* Lions offensive efficiency
+* Jayden Daniels
+* New kickoff
+* Rookie QBs: performance and inconsistency
+* Vikings defensive consistency 
+
+```{r}
+pbp_2024 <- load_pbp(seasons = 2024)
+ftn_2024 <- load_ftn_charting(seasons = 2024)
+
+pbp_2024 <- pbp_2024 %>% 
+  left_join(x=.,
+            y=ftn_2024,
+            by=c('game_id' = 'nflverse_game_id',
+                 'play_id' = 'nflverse_play_id',
+                 'season',
+                 'week'))
+```
+
+```{r}
+pbp_2024 %>% 
+  filter(passer %in% c('J.Daniels', 'C.Williams', 'B.Nix', 'D.Maye')) %>% 
+  group_by(game_id, week, posteam, passer) %>% 
+  summarise(across(
+    c('qb_epa', 'pass_attempt'),
+    list(
+        mean = ~round(mean(., na.rm = TRUE), 2),
+        sum = ~round(sum(., na.rm = TRUE), 2)
+      ),
+      .names = "{.fn}_{.col}"
+    ),
+    .groups = 'drop') %>% 
+  filter(sum_pass_attempt >= 10) %>% 
+  ggplot(.,
+         aes(x=week,
+             y=mean_qb_epa,
+             color=passer)) + 
+  geom_line() + 
+  theme_nfl_analytics()
+```
+
