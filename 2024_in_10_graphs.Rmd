@@ -63,11 +63,9 @@ Potential ideas to explore:
 * Arthur Smith play action
 * Dolphins: with and without Tua
 * Regression of Stroud, Rodgers 
-* 2 shell and passing down
 * Lions offensive efficiency
-
-* New kickoff
 * Vikings defensive consistency 
+
 
 #### Rookie QBs: performance and inconsistency
 
@@ -240,5 +238,168 @@ plot_kickoff_var <- function(var){
 plot_kickoff_var(mean_injury)
 ```
 
+
+
+#### 2 shell and passing down
+
+It doesn't seem like they put up the participation data during the season...
+
+```{r}
+participation_2023 <- load_participation(season = 2023)
+```
+
+
+#### Regression of Stroud, Rodgers 
+
+```{r}
+player_stats_99_24 <- load_player_stats(seasons = TRUE,
+                                       stat_type = 'offense')
+
+season_qbr_06_24 <- nflreadr::load_espn_qbr(seasons = TRUE,
+                        summary_type = 'season')
+
+avg_qbr <- season_qbr_06_24 %>% 
+  filter(qualified == TRUE,
+         season_type == 'Regular') %>% 
+  summarise(median_qbr_total = median(qbr_total, na.rm=TRUE),
+            .groups = 'drop') %>% 
+  pull()
+
+
+
+season_qbr_06_24 %>% 
+  filter(name_short == 'A. Rodgers',
+         season_type == 'Regular') %>% 
+  ggplot(.,
+         aes(x=season,
+             y=qbr_total)) + 
+  geom_line() + 
+  geom_smooth(se=FALSE) + 
+  geom_median_lines(data = season_qbr_06_24 %>% filter(qualified == TRUE,
+                                                       season_type == 'Regular'),
+                    aes(y0 = qbr_total)) + 
+  scale_y_continuous(breaks = scales::pretty_breaks()) + 
+  scale_x_continuous(breaks = scales::pretty_breaks()) + 
+  theme_nfl_analytics()
+```
+
+
+```{r}
+year <- 2024
+pbp_test <- load_pbp(seasons = year)
+pbp_test %>% 
+  select(contains('epa'))
+
+rodgers_pbp_08_24 <- load_pbp(seasons = c(2008:2022,2024)) %>% 
+  filter(season_type == 'REG',
+         !is.na(passer)) %>% 
+  group_by(season, passer, posteam) %>% 
+  summarise(plays = n(),
+            # count_drops = sum(is_drop, na.rm = TRUE),
+            interceptions = sum(interception, na.rm = TRUE),
+            sum_qb_epa = sum(qb_epa, na.rm = TRUE),
+            sum_air_epa = sum(air_epa, na.rm = TRUE),
+            sum_yac_epa = sum(yac_epa, na.rm = TRUE),
+            # sum_qb_epa_drops = sum(qb_epa[is_drop == TRUE], na.rm = TRUE),
+            sum_qb_epa_int = sum(qb_epa[interception == 1], na.rm = TRUE),
+            sum_qb_epa_sack = sum(qb_epa[sack == 1], na.rm = TRUE),
+            # sum_qb_epa_incomplete = sum(qb_epa[incomplete_pass == 1], na.rm = TRUE),
+            sum_qb_epa_dpi = sum(qb_epa[penalty_type == 'Defensive Pass Interference'], na.rm = TRUE),
+            .groups = 'drop') %>% 
+  filter(plays >= 25) %>% 
+  mutate(
+    across(
+      starts_with("sum"),
+      list(
+        # mean = ~round(mean(., na.rm = TRUE), 2),
+        # zscore = ~scale(.),
+        mean_centered = ~. - mean(., na.rm = TRUE)
+      ),
+      .names = "{.fn}_{.col}"
+    ))
+```
+
+
+
+```{r}
+passing_epa_2024 <- pbp_2024 %>% 
+  filter(!is.na(passer)) %>% 
+  group_by(passer, posteam) %>% 
+  summarise(plays = n(),
+            count_drops = sum(is_drop, na.rm = TRUE),
+            interceptions = sum(interception, na.rm = TRUE),
+            sum_qb_epa = sum(qb_epa, na.rm = TRUE),
+            sum_qb_epa_drops = sum(qb_epa[is_drop == TRUE], na.rm = TRUE),
+            sum_qb_epa_int = sum(qb_epa[interception == 1], na.rm = TRUE),
+            sum_qb_epa_sack = sum(qb_epa[sack == 1], na.rm = TRUE),
+            sum_qb_epa_incomplete = sum(qb_epa[incomplete_pass == 1], na.rm = TRUE),
+            sum_qb_epa_dpi = sum(qb_epa[penalty_type == 'Defensive Pass Interference'], na.rm = TRUE),
+            .groups = 'drop') %>% 
+  filter(plays >= 25) %>% 
+  mutate(
+    across(
+      starts_with("sum"),
+      list(
+        # mean = ~round(mean(., na.rm = TRUE), 2),
+        # zscore = ~scale(.),
+        mean_centered = ~. - mean(., na.rm = TRUE)
+      ),
+      .names = "{.fn}_{.col}"
+    )) %>% 
+  arrange(-sum_qb_epa_int)
+```
+
+
+```{r}
+# MVP years: 2014, 2020, 2021
+
+rodgers_pbp_08_24 %>% 
+  filter(passer == 'A.Rodgers') %>% 
+  select(passer, season, posteam, plays, contains('mean_centered')) %>% 
+  arrange(-season) %>% 
+  gt() %>% 
+  cols_label(passer = 'Name',
+             season = 'Season',
+             posteam = 'Team',
+             plays = 'Plays',
+             mean_centered_sum_qb_epa = 'EPA',
+             mean_centered_sum_air_epa = 'Air',
+             mean_centered_sum_yac_epa = 'YAC',
+             mean_centered_sum_qb_epa_int = 'INTs',
+             mean_centered_sum_qb_epa_sack = 'Sacks',
+             mean_centered_sum_qb_epa_dpi = 'DPI') %>% 
+  tab_style(
+    style = list(
+      cell_fill(color = "lightgray"),
+      cell_text(weight = "bold")
+    ),
+    locations = cells_body(
+      rows = season %in% c(2014, 2020, 2021)
+    )
+  ) %>% 
+  tab_spanner(
+    label = md("Mean Centered<br>Positive values indicate performance above league average in that season"),    
+    columns = c(mean_centered_sum_qb_epa:mean_centered_sum_qb_epa_dpi)           # Columns to span
+  ) %>% 
+  gt_theme_athletic()
+```
+
+
+
+```{r qb_epa_mean_centered_gt, include=TRUE, warning=FALSE, results='asis'}
+passing_epa_2024 %>% 
+  select(passer, posteam, plays, contains('mean_centered'), -mean_centered_sum_qb_epa_incomplete) %>% 
+  arrange(-mean_centered_sum_qb_epa) %>% 
+  gt() %>% 
+  cols_label(passer = 'Name',
+             posteam = 'Team',
+             plays = 'Plays',
+             mean_centered_sum_qb_epa = 'EPA',
+             mean_centered_sum_qb_epa_drops = 'Drops',
+             mean_centered_sum_qb_epa_int = 'INTs',
+             mean_centered_sum_qb_epa_sack = 'Sacks',
+             mean_centered_sum_qb_epa_dpi = 'DPI') %>% 
+  gt_theme_athletic()
+```
 
 
