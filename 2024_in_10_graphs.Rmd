@@ -285,89 +285,88 @@ season_qbr_06_24 %>%
 
 
 ```{r}
-year <- 2024
-pbp_test <- load_pbp(seasons = year)
-pbp_test %>% 
-  select(contains('epa'))
-
-rodgers_pbp_08_24 <- load_pbp(seasons = c(2008:2022,2024)) %>% 
+dropback_pbp_08_24 <- load_pbp(seasons = c(2008:2024)) %>% 
   filter(season_type == 'REG',
          !is.na(passer)) %>% 
   group_by(season, passer, posteam) %>% 
   summarise(plays = n(),
-            # count_drops = sum(is_drop, na.rm = TRUE),
             interceptions = sum(interception, na.rm = TRUE),
             sum_qb_epa = sum(qb_epa, na.rm = TRUE),
             sum_air_epa = sum(air_epa, na.rm = TRUE),
             sum_yac_epa = sum(yac_epa, na.rm = TRUE),
-            # sum_qb_epa_drops = sum(qb_epa[is_drop == TRUE], na.rm = TRUE),
             sum_qb_epa_int = sum(qb_epa[interception == 1], na.rm = TRUE),
             sum_qb_epa_sack = sum(qb_epa[sack == 1], na.rm = TRUE),
-            # sum_qb_epa_incomplete = sum(qb_epa[incomplete_pass == 1], na.rm = TRUE),
             sum_qb_epa_dpi = sum(qb_epa[penalty_type == 'Defensive Pass Interference'], na.rm = TRUE),
+            sum_qb_epa_scramble = sum(qb_epa[qb_scramble == 1], na.rm = TRUE),
             .groups = 'drop') %>% 
-  filter(plays >= 25) %>% 
+  filter(plays >= 150) %>% 
   mutate(
     across(
       starts_with("sum"),
       list(
-        # mean = ~round(mean(., na.rm = TRUE), 2),
-        # zscore = ~scale(.),
         mean_centered = ~. - mean(., na.rm = TRUE)
       ),
       .names = "{.fn}_{.col}"
     ))
+
+dropback_pbp_08_24 %>% 
+  filter(season == 2020) %>% 
+  arrange(-sum_qb_epa)
 ```
 
 
 
+
+
 ```{r}
-passing_epa_2024 <- pbp_2024 %>% 
-  filter(!is.na(passer)) %>% 
-  group_by(passer, posteam) %>% 
-  summarise(plays = n(),
-            count_drops = sum(is_drop, na.rm = TRUE),
-            interceptions = sum(interception, na.rm = TRUE),
-            sum_qb_epa = sum(qb_epa, na.rm = TRUE),
-            sum_qb_epa_drops = sum(qb_epa[is_drop == TRUE], na.rm = TRUE),
-            sum_qb_epa_int = sum(qb_epa[interception == 1], na.rm = TRUE),
-            sum_qb_epa_sack = sum(qb_epa[sack == 1], na.rm = TRUE),
-            sum_qb_epa_incomplete = sum(qb_epa[incomplete_pass == 1], na.rm = TRUE),
-            sum_qb_epa_dpi = sum(qb_epa[penalty_type == 'Defensive Pass Interference'], na.rm = TRUE),
-            .groups = 'drop') %>% 
-  filter(plays >= 25) %>% 
-  mutate(
-    across(
-      starts_with("sum"),
-      list(
-        # mean = ~round(mean(., na.rm = TRUE), 2),
-        # zscore = ~scale(.),
-        mean_centered = ~. - mean(., na.rm = TRUE)
-      ),
-      .names = "{.fn}_{.col}"
-    )) %>% 
-  arrange(-sum_qb_epa_int)
+dropback_pbp_08_24 %>% 
+  summarise(across(starts_with('mean_centered'),
+            list(
+              max = ~max(., na.rm = TRUE),
+              abs_min = ~abs(min(., na.rm = TRUE))
+            ),
+            .names = "{.fn}_{.col}")
+  )
 ```
 
 
 ```{r}
-# MVP years: 2014, 2020, 2021
-
-rodgers_pbp_08_24 %>% 
-  filter(passer == 'A.Rodgers') %>% 
-  select(passer, season, posteam, plays, contains('mean_centered')) %>% 
+dropback_pbp_08_24 %>% 
+  filter(passer == 'A.Rodgers',
+         season != 2023) %>% 
+  left_join(x=.,
+            y=teams %>% select(team_abbr, team_logo_wikipedia),
+            by=c('posteam' = 'team_abbr')) %>% 
+  select(season, team_logo_wikipedia, plays, contains('mean_centered')) %>% 
   arrange(-season) %>% 
   gt() %>% 
-  cols_label(passer = 'Name',
-             season = 'Season',
-             posteam = 'Team',
+  cols_label(season = 'Season',
+             team_logo_wikipedia = 'Team',
              plays = 'Plays',
              mean_centered_sum_qb_epa = 'EPA',
              mean_centered_sum_air_epa = 'Air',
              mean_centered_sum_yac_epa = 'YAC',
              mean_centered_sum_qb_epa_int = 'INTs',
              mean_centered_sum_qb_epa_sack = 'Sacks',
-             mean_centered_sum_qb_epa_dpi = 'DPI') %>% 
+             mean_centered_sum_qb_epa_dpi = 'DPI',
+             mean_centered_sum_qb_epa_scramble = 'Scramble') %>% 
+  gt_color_pills(mean_centered_sum_qb_epa, digits = 3,
+                 domain = c(-230, 230)) %>% 
+  gt_color_pills(mean_centered_sum_air_epa, digits = 3,
+                 domain = c(-300, 300)) %>% 
+  gt_color_pills(mean_centered_sum_yac_epa, digits = 3,
+                 domain = c(-240, 240)) %>% 
+  gt_color_pills(mean_centered_sum_qb_epa_int, digits = 3,
+                 domain = c(-110, 110)) %>% 
+  gt_color_pills(mean_centered_sum_qb_epa_sack, digits = 3,
+                 domain = c(-60, 60)) %>% 
+  gt_color_pills(mean_centered_sum_qb_epa_dpi, digits = 3,
+                 domain = c(-30, 30)) %>% 
+  gt_color_pills(mean_centered_sum_qb_epa_scramble, digits = 3,
+                 domain = c(-50, 50)) %>% 
+  tab_header(title = md("**Aaron Rodgers** career EPA data by season"),
+             subtitle = md("*Centering EPA categories on the league average to assess how Rodgers has succeeded historically*<br>Highlighting 2014, 2020, and 2021 as his MVP seasons")) %>% 
+  tab_source_note(source_note = md("**Source**: {nflverse}<br>Minimum 150 snaps in a season for QBs to qualify<br>Excluding 2023 as injury-shortened season")) %>% 
   tab_style(
     style = list(
       cell_fill(color = "lightgray"),
@@ -378,13 +377,21 @@ rodgers_pbp_08_24 %>%
     )
   ) %>% 
   tab_spanner(
-    label = md("Mean Centered<br>Positive values indicate performance above league average in that season"),    
-    columns = c(mean_centered_sum_qb_epa:mean_centered_sum_qb_epa_dpi)           # Columns to span
+    label = md("**Mean Centered**<br>Positive values indicate performance above league average in that season"),    
+    columns = c(mean_centered_sum_qb_epa:mean_centered_sum_qb_epa_scramble)
+  ) %>% 
+  gt_img_rows(
+    columns = team_logo_wikipedia,
+    height = 30
   ) %>% 
   gt_theme_athletic()
 ```
 
 
+So what is clearly *not* working this year? Well, lots of things -- the Jets are a mess. But throughout Rodgers' career, two things stand out:
+
+*  **Air EPA** was a strength of his game. He could push the ball down the field and add value to his team by completing passes that improve his team's expected points. Only in 2013 and 2017 -- both injury-shortened seasons -- did Rodgers post air EPA numbers below the league average. In 2024, his offense is more reliant on yards after the catch than in most of his career.
+*  Rodgers has always posted above average EPA from **scrambles**, and this is the first season where that doesn't hold true. Whether it's the injury or just a reluctance to run, Rodgers is simply more stationary and less effective at scrambling at this stage in his career.
 
 ```{r qb_epa_mean_centered_gt, include=TRUE, warning=FALSE, results='asis'}
 passing_epa_2024 %>% 
@@ -402,4 +409,83 @@ passing_epa_2024 %>%
   gt_theme_athletic()
 ```
 
+
+#### Lamar and another MVP campaign -- how has his game evolved?
+
+```{r}
+dropback_pbp_08_24 %>% 
+  filter(season == 2024) %>% 
+  arrange(-sum_qb_epa_scramble)
+```
+
+
+```{r}
+dropback_pbp_08_24 %>% 
+  filter(season >= 2018,
+         passer == 'L.Jackson') %>% 
+  left_join(x=.,
+            y=teams %>% select(team_abbr, team_logo_wikipedia),
+            by=c('posteam' = 'team_abbr')) %>% 
+  select(season, team_logo_wikipedia, plays, contains('mean_centered')) %>% 
+  arrange(-season) %>% 
+  gt() %>% 
+  cols_label(season = 'Season',
+             team_logo_wikipedia = 'Team',
+             plays = 'Plays',
+             mean_centered_sum_qb_epa = 'EPA',
+             mean_centered_sum_air_epa = 'Air',
+             mean_centered_sum_yac_epa = 'YAC',
+             mean_centered_sum_qb_epa_int = 'INTs',
+             mean_centered_sum_qb_epa_sack = 'Sacks',
+             mean_centered_sum_qb_epa_dpi = 'DPI',
+             mean_centered_sum_qb_epa_scramble = 'Scramble') %>% 
+  gt_color_pills(mean_centered_sum_qb_epa, digits = 3,
+                 domain = c(-230, 230)) %>% 
+  gt_color_pills(mean_centered_sum_air_epa, digits = 3,
+                 domain = c(-300, 300)) %>% 
+  gt_color_pills(mean_centered_sum_yac_epa, digits = 3,
+                 domain = c(-240, 240)) %>% 
+  gt_color_pills(mean_centered_sum_qb_epa_int, digits = 3,
+                 domain = c(-110, 110)) %>% 
+  gt_color_pills(mean_centered_sum_qb_epa_sack, digits = 3,
+                 domain = c(-60, 60)) %>% 
+  gt_color_pills(mean_centered_sum_qb_epa_dpi, digits = 3,
+                 domain = c(-30, 30)) %>% 
+  gt_color_pills(mean_centered_sum_qb_epa_scramble, digits = 3,
+                 domain = c(-50, 50)) %>% 
+  tab_header(title = md("The Evolution of **Lamar Jackson**"),
+             subtitle = md("*Centering EPA categories on the league average to assess how Jackson has succeeded historically*<br>Highlighting 2019 and 2023 as his MVP seasons")) %>% 
+  tab_source_note(source_note = md("**Source**: {nflverse}<br>Minimum 150 snaps in a season for QBs to qualify")) %>% 
+  tab_style(
+    style = list(
+      cell_fill(color = "lightgray"),
+      cell_text(weight = "bold")
+    ),
+    locations = cells_body(
+      rows = season %in% c(2019, 2023)
+    )
+  ) %>% 
+  tab_spanner(
+    label = md("**Mean Centered**<br>Positive values indicate performance above league average in that season"),    
+    columns = c(mean_centered_sum_qb_epa:mean_centered_sum_qb_epa_dpi)           # Columns to span
+  ) %>% 
+  gt_img_rows(
+    columns = team_logo_wikipedia,
+    height = 30
+  ) %>% 
+  gt_theme_athletic()
+```
+
+
+Conventional thought is that Jackson's scrambling is the strength in his game. While it's true that his scrambling ability is *a* strength, he's performing at about the league average from an EPA standpoint. In 2024, the majority of his rushing yards have come from designed QB runs. (**Look up RPO from FTN**)
+
+```{r}
+pbp_2024 %>% 
+  # select(contains('rush'))
+  filter(play_type == 'run',
+         rusher_player_name == 'L.Jackson') %>% 
+  group_by(qb_scramble) %>% 
+  summarise(yards = sum(yards_gained, na.rm = TRUE))
+  filter(passer == 'L.Jackson')
+```
 
