@@ -37,14 +37,14 @@ showtext::showtext_auto()
 ```{r nfl_analytics_theme, include=TRUE}
 theme_nfl_analytics <- function(..., base_size = 12) {
   theme(
-    text = element_text(family = "Lexend", size = base_size, color = "black", face='bold'),
+    text = element_text(family = "Lexend", size = base_size, color = "black"),
     axis.ticks = element_blank(),
     axis.title = element_text(face = "bold"),
     axis.text = element_text(face = "bold"),
     plot.title.position = "plot",
-    plot.title = element_markdown(size = 16, vjust = .02, hjust = 0.5),
-    plot.subtitle = element_markdown(hjust = 0.5),
-    plot.caption = element_markdown(size = 8),
+    plot.title = element_textbox(size = 16, vjust = .02, hjust = 0.5, face='bold'),
+    plot.subtitle = element_textbox(hjust = 0.5, lineheight = .4),
+    plot.caption = element_textbox(size = 8),
     panel.grid.minor = element_blank(),
     panel.grid.major =  element_line(color = "#d0d0d0"),
     panel.background = element_rect(fill = "#f7f7f7"),
@@ -56,6 +56,11 @@ theme_nfl_analytics <- function(..., base_size = 12) {
     strip.text = element_text(face = "bold"))
 }
 ```
+
+```{r teams, include=TRUE}
+teams <- load_teams(current = TRUE)
+```
+
 
 Potential ideas to explore:
 
@@ -187,18 +192,6 @@ kickoff_99_24 <- kickoff_99_24 %>%
          injury_head = if_else(str_detect(desc, 'head injury'), 1, 0),
          injury_neck = if_else(str_detect(desc, 'neck injury'), 1, 0))
 
-# what do I want the eval metrics to be?
-# touchback
-# injury
-# return_yards
-# kick_distance
-# touchback
-# kick_distance
-# kickoff_inside_twenty
-# kickoff_in_endzone
-# kickoff_fair_catch
-# touchdown
-
 kickoff_vars <- c('touchback', 'return_yards', 'kick_distance', 'kickoff_inside_twenty',
                   'kickoff_in_endzone', 'kickoff_fair_catch', 'return_touchdown',
                   # it appears that injury coding changed and the desc field doesn't list injury type anymore 
@@ -238,6 +231,18 @@ plot_kickoff_var <- function(var){
 plot_kickoff_var(mean_injury)
 ```
 
+```{r}
+# df_injuries <- load_injuries(seasons = TRUE)
+# 
+# df_injuries %>% head()
+# 
+# gsis_id not in pbp data
+# kickoff_99_24 %>% 
+#   left_join(x=.,
+#             y=df_injuries %>% select(gsis_id, report_primary_injury),
+#             by='gsis_id') %>% 
+#   select(report_primary_injury, everything())
+```
 
 
 #### 2 shell and passing down
@@ -477,15 +482,257 @@ dropback_pbp_08_24 %>%
 ```
 
 
-Conventional thought is that Jackson's scrambling is the strength in his game. While it's true that his scrambling ability is *a* strength, he's performing at about the league average from an EPA standpoint. In 2024, the majority of his rushing yards have come from designed QB runs. (**Look up RPO from FTN**)
+Conventional thought is that Jackson's scrambling is the strength in his game. While it's true that his scrambling ability is *a* strength, he's performing at about the league average from an EPA standpoint. In 2024, the majority of his rushing yards have come from designed QB runs.
 
 ```{r}
 pbp_2024 %>% 
-  # select(contains('rush'))
   filter(play_type == 'run',
          rusher_player_name == 'L.Jackson') %>% 
   group_by(qb_scramble) %>% 
   summarise(yards = sum(yards_gained, na.rm = TRUE))
   filter(passer == 'L.Jackson')
+```
+
+
+#### "Passing is down league-wide..." 
+
+...or is it?
+
+```{r}
+player_stats_99_24 %>% 
+  filter(season_type == 'REG') %>% 
+  group_by(season, week, recent_team) %>% 
+  summarise(ttl_passing_yards = sum(passing_yards, na.rm = TRUE),
+            .groups = 'drop') %>% 
+  # looking at 2024 on a week-to-week basis, passing is on the rise, which is muting the story of "passing is down across the league
+  # filter(season == 2024) %>% 
+  # group_by(week) %>% 
+  group_by(season) %>%
+  summarise(passing_yards_per_game = mean(ttl_passing_yards, na.rm = TRUE)) %>% 
+  ggplot(.,
+         aes(x=season,
+             y=passing_yards_per_game)) + 
+  geom_col() + 
+  geom_smooth(se=FALSE) + 
+  scale_y_continuous(breaks = scales::pretty_breaks()) + 
+  scale_x_continuous(breaks = scales::pretty_breaks()) + 
+  theme_nfl_analytics()
+```
+
+```{r fig.height=6.2}
+player_stats_99_24 %>% 
+  filter(season_type == 'REG') %>% 
+  group_by(season, week, recent_team) %>% 
+  summarise(ttl_passing_yards = sum(passing_yards, na.rm = TRUE),
+            .groups = 'drop') %>% 
+  group_by(season, recent_team) %>%
+  summarise(passing_yards_per_game = mean(ttl_passing_yards, na.rm = TRUE),
+            .groups = 'drop') %>% 
+  ggplot(.,
+         aes(x=passing_yards_per_game,
+             y=season)) + 
+  geom_jitter(width=0, height=.1, alpha=.4) + 
+  geom_segment(data = . %>% 
+                 group_by(season) %>% 
+                 summarise(mean_yards = mean(passing_yards_per_game)),
+               aes(x = mean_yards, xend = mean_yards,
+                   y = season - 0.6, yend = season + 0.6),
+               color = "red", linetype = "dashed", linewidth = 1.2) +
+  labs(title = 'Distribution of passing yards per game on a seasonal basis (1999-2024)',
+       subtitle = "Each dot represents a team's average total passing from a season<br>Red lines mark the league-wide average for a season",
+       y='Season',
+       x='Average pass yards per game',
+       caption = '**Source**: {nflverse}') + 
+  scale_y_continuous(breaks = scales::pretty_breaks()) + 
+  scale_x_continuous(breaks = scales::pretty_breaks()) + 
+  theme_nfl_analytics() + 
+  theme(axis.title.y = element_text(angle = 0))
+```
+
+
+#### Cam Heyward 
+
+```{r}
+calc_age <- function(birthDate, refDate = Sys.Date(), unit = "year") {
+  
+  require(lubridate)
+  
+  if(grepl(x = unit, pattern = "year")) {
+    as.period(interval(birthDate, refDate), unit = 'year')$year
+  } else if(grepl(x = unit, pattern = "month")) {
+    as.period(interval(birthDate, refDate), unit = 'month')$month
+  } else if(grepl(x = unit, pattern = "week")) {
+    floor(as.period(interval(birthDate, refDate), unit = 'day')$day / 7)
+  } else if(grepl(x = unit, pattern = "day")) {
+    as.period(interval(birthDate, refDate), unit = 'day')$day
+  } else {
+    print("Argument 'unit' must be one of 'year', 'month', 'week', or 'day'")
+    NA
+  }
+  
+}
+
+# found this code on opensourcefootball.com
+# loop to get 1999 to 2024 rosters
+rosters <- data.frame()
+
+for (x in 1999:2024) {
+  df <- nflfastR::fast_scraper_roster(x) %>%
+    mutate(birth_date = as.Date(birth_date)) %>%
+    select(
+      position,
+      birth_date,
+      gsis_id,
+      season,
+      years_exp,
+      full_name,
+      team
+    ) %>%
+    mutate(age_season_start = calc_age(birth_date, paste0(x,"-09-01")))
+  rosters <- rbind(df, rosters)
+}
+```
+
+
+```{r}
+rosters %>% 
+  filter(position == 'DL')
+
+```
+
+
+```{r}
+player_stats_def_99_24 <- load_player_stats(seasons = TRUE,
+                  stat_type = 'defense') %>% 
+  filter(season_type == 'REG')
+
+def_ranks <- player_stats_def_99_24 %>% 
+  group_by(season, team, player_id, player_display_name, position) %>% 
+  summarise(across(starts_with('def'),
+                   list(
+                     sum = ~sum(., na.rm = TRUE)
+                   ),
+                   .names = '{.fn}_{.col}'
+                   ),
+            .groups = 'drop'
+            ) %>% 
+  group_by(season) %>% 
+  mutate(across(starts_with('sum'),
+                list(
+                  rank = ~rank(-.)
+                ),
+                .names = '{.fn}_{.col}'
+                )
+         )
+  
+def_ranks %>% 
+  left_join(x=.,
+            y=rosters,
+            by=c('player_id' = 'gsis_id',
+                 'season',
+                 'team')) %>% 
+  filter(age_season_start >= 35,
+         position.x == 'DT') %>% 
+  arrange(-sum_def_sacks)
+  # mutate(over_35 = if_else(age_season_start >= 35, 1, 0)) %>% 
+  # filter(over_35 == 1) %>% 
+  # group_by(full_name, over_35) %>% 
+  # summarise(ttl_sacks_over_35 = sum(sum_def_sacks, na.rm = TRUE),
+  #           .groups = 'drop') %>% 
+  # arrange(-ttl_sacks_over_35) %>% 
+  # mutate(per_ttl = ttl_sacks_over_35 / sum(ttl_sacks_over_35))
+
+# pbp_2024 %>% 
+  # select(contains('def'))
+  # filter(!is.na(pass_defense_1_player_name)) %>% 
+  # filter(pass_defense_1_player_name == 'Ca.Heyward')
+
+
+```
+
+Coming off of a season where he struggled with a groin injury, Heyward is having a historic season.
+
+#### New City, New You: Derrick Henry and Saquon Barkley 
+
+```{r}
+pfr_stats_rush_18_24 <- nflreadr::load_pfr_advstats(seasons = TRUE,
+                                                    stat_type = "rush",
+                                                    summary_level = "season")
+```
+
+```{r}
+nextgen_rushing_16_24 <- load_nextgen_stats(seasons = TRUE,
+                   stat_type = 'rushing')
+```
+
+```{r}
+nextgen_rushing_16_24 %>% 
+  filter(player_display_name == 'Saquon Barkley')
+  head()
+```
+
+```{r}
+pfr_stats_rush_18_24 %>% 
+  mutate(spotlight_players = if_else(player %in% c('Derrick Henry', 'Saquon Barkley'), 'Yes', 'No')) %>% 
+  ggplot(.,
+         aes(x=ybc,
+             y=yds,
+             alpha=spotlight_players,
+             color=spotlight_players)) + 
+  geom_point() + 
+  ggrepel::geom_label_repel(data=. %>% filter(season == 2024,
+                                              spotlight_players == 'Yes'),
+                            aes(label = paste(player, ", ", season, sep='')),
+                            family='Lexend') + 
+  scale_alpha_manual(values = c('No' = .1,
+                                'Yes' = 1)) +
+  scale_y_continuous(labels = scales::comma,
+                     breaks = scales::pretty_breaks()) +
+  scale_x_continuous(labels = scales::comma,
+                     breaks = scales::pretty_breaks()) +
+  theme_nfl_analytics() + 
+  theme(legend.position = 'none')
+  # head() %>% 
+  filter(player %in% c('Derrick Henry', 'Saquon Barkley'))
+```
+
+```{r}
+pbp_2024 %>% 
+  filter(rusher == 'J.Gibbs') %>% 
+  distinct(play_type)
+```
+
+
+```{r}
+pbp_2024 %>% 
+  filter(!is.na(rusher),
+         play_type != 'no_play') %>% 
+  # filter(rusher %in% c('S.Barkley', 'D.Henry')) %>% 
+  group_by(posteam, rusher) %>% 
+  summarise(attempts = n(), 
+            ttl_yards_gained = sum(yards_gained, na.rm = TRUE),
+            avg_success = mean(success, na.rm = TRUE),
+            epa_per_play = mean(epa, na.rm = TRUE),
+            ttl_touchdowns = sum(touchdown, na.rm = TRUE),
+            ttl_first_down_rush = sum(first_down_rush, na.rm = TRUE),
+            .groups = 'drop') %>% 
+  filter(attempts >= 75) %>% 
+  mutate(across(c('ttl_yards_gained', 'avg_success', 'epa_per_play', 'ttl_touchdowns', 'ttl_first_down_rush'),
+                list(
+                  rank = ~dense_rank(-.)
+                ),
+                .names = '{.fn}_{.col}'
+                ),
+         yards_per_carry = round(ttl_yards_gained / attempts, 1)
+         ) %>% 
+  arrange(-ttl_yards_gained) %>% 
+  ggplot(.,
+         aes(x=epa_per_play,
+             y=avg_success)) + 
+  geom_point(aes(size=ttl_yards_gained)) + 
+  ggrepel::geom_text_repel(aes(label=rusher),
+                           family='Lexend', box.padding = .5) + 
+  theme_nfl_analytics()
+# attempts not matching ESPN
 ```
 
