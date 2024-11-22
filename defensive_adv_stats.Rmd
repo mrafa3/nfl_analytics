@@ -121,3 +121,108 @@ defensive_epa_success %>%
   nfl_analytics_theme()
 ```
 
+
+
+
+
+
+
+#### Pass Rush
+
+```{r}
+pbp_22_24 <- load_pbp(seasons = 2022:2024) %>% 
+  filter(season_type == 'REG')
+
+ftn_22_24 <- load_ftn_charting(seasons = 2022:2024)
+
+pbp_22_24 <- pbp_22_24 %>% 
+  left_join(x=.,
+            y=ftn_22_24,
+            by=c('game_id' = 'nflverse_game_id',
+                 'play_id' = 'nflverse_play_id',
+                 'season',
+                 'week'))
+
+# n_blitzer
+```
+
+```{r}
+(df_pass_rush <- pbp_22_24 %>% 
+  filter(play_type == 'pass') %>% 
+  group_by(season, n_pass_rushers) %>% 
+  summarise(plays = n(),
+            sack = sum(sack, na.rm = TRUE),
+            interception = sum(interception, na.rm = TRUE),
+            pass_attempt = sum(pass_attempt, na.rm = TRUE), 
+            .groups = 'drop') %>% 
+  mutate(across(c('sack', 'interception'),
+                list(
+                  rate = ~round(. / plays, 3)
+                ),
+                .names = '{.col}_{.fn}'))
+)
+```
+
+```{r}
+pbp_22_24 %>% 
+  filter(play_type %in% c('punt', 'kickoff', 'field_goal', 'extra_point')) %>% 
+  group_by(season, posteam, play_type) %>% 
+  summarise(ttl_epa = sum(epa, na.rm = TRUE),
+            epa_per_play = mean(epa, na.rm = TRUE),
+            .groups = 'drop') %>% 
+  filter(season == 2024) %>% 
+  arrange(-epa_per_play)
+
+pbp_22_24 %>% 
+  filter(play_type %in% c('punt', 'kickoff', 'field_goal', 'extra_point')) %>% 
+  group_by(season, defteam, play_type) %>% 
+  summarise(ttl_epa = sum(epa, na.rm = TRUE),
+            epa_per_play = mean(epa, na.rm = TRUE),
+            .groups = 'drop') %>% 
+  filter(season == 2024) %>% 
+  arrange(epa_per_play)
+
+df_pass_rush %>% 
+  filter(n_pass_rushers > 2 & n_pass_rushers < 8) %>% 
+  ggplot(.,
+         aes(x=n_pass_rushers,
+             y=interception_rate)) + 
+  geom_col() + 
+  facet_wrap(~season,
+             ncol = 1) + 
+  theme_nfl_analytics()
+```
+
+```{r}
+pbp_2024 %>% 
+  # filter(fumble_lost == 1)
+  # select(contains('fumbl'))
+  group_by(defteam, week) %>% 
+  summarise(fumble_recovery = sum(fumble_lost, na.rm = TRUE),
+            interception = sum(interception, na.rm = TRUE),
+            .groups = 'drop') %>% 
+  mutate(takeaways = fumble_recovery + interception) %>% 
+  arrange(-takeaways)
+
+pbp_2024 %>% 
+  group_by(posteam, week) %>% 
+  summarise(explosive_runs = sum(yards_gained[play_type == 'run'] >= 10, na.rm = TRUE),
+            explosive_passes = sum(yards_gained[play_type == 'pass'] >= 20, na.rm = TRUE),
+            .groups = 'drop')
+```
+
+```{r}
+pbp_2024 %>% 
+  # filter(fumble_lost == 1)
+  # select(contains('fumbl'))
+  group_by(posteam, defteam, week) %>% 
+  summarise(fumble_recovery = sum(fumble_lost, na.rm = TRUE),
+            interception = sum(interception, na.rm = TRUE),
+            explosive_runs = sum(yards_gained[play_type == 'run'] >= 10, na.rm = TRUE),
+            explosive_passes = sum(yards_gained[play_type == 'pass'] >= 20, na.rm = TRUE),
+            .groups = 'drop') %>% 
+  mutate(takeaways = fumble_recovery + interception) %>% 
+  filter((posteam == 'DAL' | posteam == 'DET') & (defteam == 'DAL' | defteam == 'DET'))
+```
+
+

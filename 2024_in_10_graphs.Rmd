@@ -398,23 +398,6 @@ So what is clearly *not* working this year? Well, lots of things -- the Jets are
 *  **Air EPA** was a strength of his game. He could push the ball down the field and add value to his team by completing passes that improve his team's expected points. Only in 2013 and 2017 -- both injury-shortened seasons -- did Rodgers post air EPA numbers below the league average. In 2024, his offense is more reliant on yards after the catch than in most of his career.
 *  Rodgers has always posted above average EPA from **scrambles**, and this is the first season where that doesn't hold true. Whether it's the injury or just a reluctance to run, Rodgers is simply more stationary and less effective at scrambling at this stage in his career.
 
-```{r qb_epa_mean_centered_gt, include=TRUE, warning=FALSE, results='asis'}
-passing_epa_2024 %>% 
-  select(passer, posteam, plays, contains('mean_centered'), -mean_centered_sum_qb_epa_incomplete) %>% 
-  arrange(-mean_centered_sum_qb_epa) %>% 
-  gt() %>% 
-  cols_label(passer = 'Name',
-             posteam = 'Team',
-             plays = 'Plays',
-             mean_centered_sum_qb_epa = 'EPA',
-             mean_centered_sum_qb_epa_drops = 'Drops',
-             mean_centered_sum_qb_epa_int = 'INTs',
-             mean_centered_sum_qb_epa_sack = 'Sacks',
-             mean_centered_sum_qb_epa_dpi = 'DPI') %>% 
-  gt_theme_athletic()
-```
-
-
 #### Lamar and another MVP campaign -- how has his game evolved?
 
 ```{r}
@@ -490,7 +473,6 @@ pbp_2024 %>%
          rusher_player_name == 'L.Jackson') %>% 
   group_by(qb_scramble) %>% 
   summarise(yards = sum(yards_gained, na.rm = TRUE))
-  filter(passer == 'L.Jackson')
 ```
 
 
@@ -668,7 +650,6 @@ nextgen_rushing_16_24 <- load_nextgen_stats(seasons = TRUE,
 ```{r}
 nextgen_rushing_16_24 %>% 
   filter(player_display_name == 'Saquon Barkley')
-  head()
 ```
 
 ```{r}
@@ -693,7 +674,7 @@ pfr_stats_rush_18_24 %>%
   theme_nfl_analytics() + 
   theme(legend.position = 'none')
   # head() %>% 
-  filter(player %in% c('Derrick Henry', 'Saquon Barkley'))
+  # filter(player %in% c('Derrick Henry', 'Saquon Barkley'))
 ```
 
 ```{r}
@@ -732,7 +713,7 @@ pbp_2024 %>%
   geom_point(aes(size=ttl_yards_gained)) + 
   ggrepel::geom_text_repel(aes(label=rusher),
                            family='Lexend', box.padding = .5) + 
-  theme_nfl_analytics()
+  theme_nfl_analytics() + 
+  theme(legend.position = 'none')
 # attempts not matching ESPN
 ```
-
