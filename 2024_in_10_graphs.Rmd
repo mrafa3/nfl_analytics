@@ -717,3 +717,30 @@ pbp_2024 %>%
   theme(legend.position = 'none')
 # attempts not matching ESPN
 ```
+
+
+#### Air yards 
+
+
+```{r}
+# air_yards doesn't seem to have data prior to 2006 season
+pbp_all_seasons <- load_pbp(seasons = 2006:2024) %>% 
+  filter(season_type == 'REG',
+         play_type == 'pass',
+         pass_attempt == 1)
+
+pbp_all_seasons %>% 
+  # select(contains('air'))
+  # filter(play_type == 'pass',
+  #        pass_attempt == 1) %>% 
+  group_by(season) %>% 
+  summarise(plays = n(),
+            avg_air_yards = mean(air_yards, na.rm = TRUE)) %>% 
+  filter(season>=2006) %>% 
+  ggplot(.,
+         aes(x=season,
+             y=avg_air_yards)) + 
+  geom_col() + 
+  theme_nfl_analytics()
+```
+
