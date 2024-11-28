@@ -719,6 +719,29 @@ pbp_2024 %>%
 
 Look at the cumulative sum of expected points (with proper citation from Substack!).
 
+```{r}
+pbp_2024 %>% 
+  # select(contains('date'))
+  arrange(game_date, play_id) %>% 
+  filter(!is.na(rusher)) %>% 
+  group_by(posteam, rusher) %>% 
+  summarise(cumsum_epa = cumsum(epa),
+            carry = row_number(),
+            ttl_carry = max(carry),
+            .groups = 'drop') %>% 
+  filter(ttl_carry >= 100) %>% 
+  ggplot(.,
+         aes(x=carry,
+             y=cumsum_epa)) + 
+             # color=if_else(rusher == 'S.Barkley', 'S.Barkley', 'Other'))) + 
+  geom_line(aes(groups=rusher)) + 
+  # scale_color_manual(values = c('S.Barkley' = 'black',
+  #                               'Other' = 'gray98')) + 
+  theme_nfl_analytics() + 
+  theme(legend.position = 'none')
+```
+
+
 
 #### Air yards 
 
