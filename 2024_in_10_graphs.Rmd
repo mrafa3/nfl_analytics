@@ -9,6 +9,7 @@ if (!require("pacman")) install.packages("pacman")
 pacman::p_load(
     tidyverse,
     nflverse,
+    plotly,
     gt,
     gtExtras,
     gtUtils,
@@ -739,6 +740,59 @@ pbp_2024 %>%
   #                               'Other' = 'gray98')) + 
   theme_nfl_analytics() + 
   theme(legend.position = 'none')
+```
+
+```{r}
+pbp_2024 %>% 
+  # names()
+  # select(contains('target'))
+  filter(receiver == 'J.Chase') %>% 
+  arrange(epa) %>% 
+  select(is_drop, everything())
+```
+
+
+```{r}
+receiver_epa <- pbp_2024 %>% 
+  arrange(game_date, play_id) %>% 
+  filter(!is.na(receiver),
+         complete_pass == 1) %>% 
+  group_by(posteam, receiver) %>% 
+  summarise(cumsum_epa = cumsum(epa),
+            catch = row_number(),
+            ttl_catch = max(catch),
+            .groups = 'drop') %>% 
+  filter(ttl_catch >= 50)
+
+(receiver_epa_plot <- receiver_epa %>% 
+  ggplot(.,
+         aes(x=catch,
+             y=cumsum_epa)) + 
+             # Add these lines for plotly hover
+             # text = paste("Receiver:", receiver, 
+             #              "<br>Catch:", catch, 
+             #              "<br>Cumulative EPA:", round(cumsum_epa, 2)))) + 
+  geom_line(aes(groups=receiver)) + 
+  theme_nfl_analytics() + 
+  theme(legend.position = 'none'))
+```
+
+```{r}
+ggplotly(receiver_epa_plot, tooltip = "text")
+```
+
+```{r}
+plot_ly(receiver_epa, 
+        x = ~catch, 
+        y = ~cumsum_epa, 
+        type = 'scatter', 
+        mode = 'lines+markers',
+        # line = list(shape = 'spline'),
+        text = ~paste("Receiver:", receiver, 
+                      "<br>Team:", posteam,
+                      "<br>Catch:", catch, 
+                      "<br>Cumulative EPA:", round(cumsum_epa, 2)),
+        hoverinfo = 'text')
 ```
 
 
