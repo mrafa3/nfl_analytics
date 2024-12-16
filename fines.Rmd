@@ -78,11 +78,29 @@ df_fines <- fines_url %>%
   filter(!is.na(week))
 ```
 
+```{r params, include=TRUE}
+max_week_param <- df_fines %>% 
+  summarise(max(week)) %>% 
+  pull()
+
+league_logo <- teams$team_league_logo[1]
+```
+
+# Cleaning 
+
+Note: Sneed's Week 6 Taunting fine was only 14k -- there's an error on Spotrac.com. I'll overwrite that value with what has been reported.
+
+
 ```{r}
 df_fines <- df_fines %>% 
   mutate(amount_lost = parse_number(amount_lost),
          date = parse_date_time(date, orders = "mdy"),
          infraction = str_extract(infraction, "(?<=/ ).*"))
+```
+
+```{r}
+df_fines <- df_fines %>% 
+  mutate(amount_lost = if_else(player == "L'Jarius Sneed" & week == 6, 14069, amount_lost))
 ```
 
 ```{r}
@@ -92,7 +110,136 @@ df_fines %>%
             count_fines = n(),
             .groups = 'drop') %>% 
   mutate(avg_fine_per_infraction = ttl_fines / count_fines) %>% 
-  arrange(-avg_fine_per_infraction) %>% 
-  gt()
-
+  arrange(-ttl_fines) %>% 
+  gt() %>% 
+  cols_label(infraction = 'Infraction',
+             ttl_fines = 'Total Fine Amount ($)',
+             count_fines = '# Fines',
+             avg_fine_per_infraction = 'Average Fine') %>% 
+    tab_header(
+    title = md("<img src='https://raw.githubusercontent.com/nflverse/nflverse-pbp/master/NFL.png' style='height:30px;'>    Fines in the 2024 NFL Season by Infraction Type")) %>%
+  tab_source_note(source_note = md("**Source**: Spotrac.com")) %>% 
+  grand_summary_rows(
+    columns = c(ttl_fines, count_fines),
+    fns = list(Total = ~sum(.))
+  ) %>% 
+  fmt_currency(columns = c(ttl_fines, avg_fine_per_infraction),
+               decimals = 0) %>% 
+  tab_style(
+    style = list(
+      cell_fill(color = "lightgray"),
+      cell_text(weight = "bold")
+    ),
+    locations = cells_body(
+      rows = infraction == 'Hip Drop Tackle'
+    )
+  ) %>% 
+  gt_theme_538()
 ```
+
+
+```{r}
+df_fines_teams <- df_fines %>% 
+  mutate(team = case_match(team,
+                           'LAR' ~ 'LA',
+                           .default = team)) %>% 
+  group_by(team) %>% 
+  summarise(ttl_fines = sum(amount_lost, na.rm = TRUE),
+            count_fines = n(),
+            .groups = 'drop') %>% 
+  mutate(avg_fine_per_infraction = ttl_fines / count_fines) %>% 
+  left_join(x=.,
+            y=teams,
+            by=c('team' = 'team_abbr')) %>% 
+  arrange(-ttl_fines)
+
+
+
+df_fines_teams %>% 
+  select(team_logo_wikipedia, team_name, team_division, ttl_fines, count_fines, avg_fine_per_infraction) %>% 
+  gt() %>% 
+  gt_img_rows(
+    columns = team_logo_wikipedia,
+    height = 20
+  ) %>% 
+  cols_label(team_name = '',
+             team_division = '',
+             team_logo_wikipedia = '',
+             ttl_fines = 'Total Fine Amount ($)',
+             count_fines = '# Fines',
+             avg_fine_per_infraction = 'Average Fine') %>% 
+  gt_merge_stack(col1 = team_name, col2 = team_division) %>%
+  tab_header(
+    title = md("<img src='https://raw.githubusercontent.com/nflverse/nflverse-pbp/master/NFL.png' style='height:30px;'>    Fines in the 2024 NFL Season by Team")) %>%
+  tab_source_note(source_note = md("**Source**: Spotrac.com")) %>% 
+  grand_summary_rows(
+    columns = c(ttl_fines),
+    fns = list(Total = ~sum(.)),
+    fmt = list(~ fmt_currency(., decimals = 0))
+    ) %>% 
+  grand_summary_rows(
+    columns = c(count_fines),
+    fns = list(Total = ~sum(.)),
+    fmt = list(~ fmt_number(., decimals = 0))
+    ) %>% 
+  grand_summary_rows(
+    columns = c(avg_fine_per_infraction),
+    fns = list(Total = ~mean(.)),
+    fmt = list(~ fmt_currency(., decimals = 0))
+    ) %>% 
+  fmt_currency(columns = c(ttl_fines, avg_fine_per_infraction),
+               decimals = 0) %>% 
+  tab_options(
+    grand_summary_row.background.color = "lightgray"
+  ) %>% 
+  data_color(columns = ttl_fines,
+             palette = c("white", "firebrick3")) %>%
+  gt_theme_538()
+```
+
+
+```{r}
+df_fines %>% 
+  filter(week == max_week_param) %>% 
+  left_join(x=.,
+            y=teams,
+            by=c('team' = 'team_abbr')) %>% 
+  mutate(team = case_match(team,
+                           'LAR' ~ 'LA',
+                           .default = team)) %>% 
+  select(team_logo_wikipedia, team_name, team_division, player, infraction, amount_lost) %>% 
+  arrange(-amount_lost) %>% 
+  gt() %>% 
+  gt_img_rows(
+    columns = team_logo_wikipedia,
+    height = 20
+  ) %>% 
+  cols_label(team_name = '',
+             team_division = '',
+             team_logo_wikipedia = '',
+             player = 'Player',
+             amount_lost = 'Total Fine Amount ($)',
+             infraction = 'Infraction') %>% 
+  gt_merge_stack(col1 = team_name, col2 = team_division) %>%
+  tab_header(
+    title = md("<img src='https://raw.githubusercontent.com/nflverse/nflverse-pbp/master/NFL.png' style='height:30px;'>    Fines in the 2024 NFL Season by Infraction Type"),
+    subtitle = glue("Week {max_week_param} of the 2024 Season")) %>%
+  tab_source_note(source_note = md("**Source**: Spotrac.com")) %>% 
+  grand_summary_rows(
+    columns = c(amount_lost),
+    fns = list(Total = ~sum(.)),
+    fmt = list(~ fmt_currency(., decimals = 0))
+    ) %>%
+  fmt_currency(columns = c(amount_lost),
+               decimals = 0) %>%
+  data_color(columns = amount_lost,
+             palette = c("white", "firebrick3")) %>%
+  gt_theme_538()
+```
+
+
+```{r}
+df_fines %>% 
+  arrange(-amount_lost)
+```
+
