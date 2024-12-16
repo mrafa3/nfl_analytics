@@ -229,21 +229,16 @@ plot_kickoff_var <- function(var){
   theme_nfl_analytics()
 }
 
-plot_kickoff_var(mean_injury)
+# kickoff_vars <- c('touchback', 'return_yards', 'kick_distance', 'kickoff_inside_twenty',
+#                   'kickoff_in_endzone', 'kickoff_fair_catch', 'return_touchdown',
+#                   # it appears that injury coding changed and the desc field doesn't list injury type anymore 
+#                   'injury', 'injury_head', 'injury_neck')
+
+plot_kickoff_var(mean_return_yards)
 ```
 
-```{r}
-# df_injuries <- load_injuries(seasons = TRUE)
-# 
-# df_injuries %>% head()
-# 
-# gsis_id not in pbp data
-# kickoff_99_24 %>% 
-#   left_join(x=.,
-#             y=df_injuries %>% select(gsis_id, report_primary_injury),
-#             by='gsis_id') %>% 
-#   select(report_primary_injury, everything())
-```
+Doesn't seem to be a service to tie injury data from {nflfastR} to play by play data.
+
 
 
 #### 2 shell and passing down
@@ -335,6 +330,10 @@ dropback_pbp_08_24 %>%
   )
 ```
 
+```{r}
+teams
+```
+
 
 ```{r}
 dropback_pbp_08_24 %>% 
@@ -375,7 +374,7 @@ dropback_pbp_08_24 %>%
   tab_source_note(source_note = md("**Source**: {nflverse}<br>Minimum 150 snaps in a season for QBs to qualify<br>Excluding 2023 as injury-shortened season")) %>% 
   tab_style(
     style = list(
-      cell_fill(color = "lightgray"),
+      cell_fill(color = "#FFB612"),
       cell_text(weight = "bold")
     ),
     locations = cells_body(
@@ -833,5 +832,33 @@ pfr_rec_stats <- load_pfr_advstats(seasons = TRUE,
 
 
 dictionary_pfr_passing
+```
+
+
+#### Offensive EPA: rush vs. pass (Lions spotlight?)
+
+```{r}
+pbp_2024 %>% 
+  filter(play_type %in% c('run', 'pass')) %>% 
+  group_by(posteam, play_type) %>% 
+  summarise(epa_per_play = mean(epa, na.rm = TRUE),
+            .groups = 'drop') %>% 
+  pivot_wider(names_from = play_type, values_from = epa_per_play) %>% 
+  ggplot(.,
+         aes(x=run,
+             y=pass)) + 
+  geom_mean_lines(aes(x0=0,
+                      y0=0),
+                  color='black', linewidth=.8, linetype='dashed') + 
+  geom_nfl_logos(aes(team_abbr = posteam), width = 0.09, alpha = 0.75) +
+  scale_y_continuous(breaks = scales::pretty_breaks()) + 
+  scale_x_continuous(breaks = scales::pretty_breaks()) + 
+  labs(
+    title = '**Expected Points Added per Play**: Rush Offense vs. Pass Offense',
+    subtitle = glue::glue('2024 season, through Week {max_week_param}'),
+    x = "Rush EPA/play",
+    y = "Pass EPA/play"
+    ) +
+  theme_nfl_analytics()
 ```
 

@@ -366,8 +366,7 @@ pbp_plus_ftn_2024 %>%
   gt_border_bars_bottom("#1c2632", bar_height = 25, text = "Source: `nflreadr::` package. Inspiration: Georgios Karamanis' Tidy Tuesday work.", text_weight = "normal", text_size = 12)
 
 
-qb_epa_mean_centered_gt <- htmltools::withTags({
-  passing_epa %>% 
+qb_epa_mean_centered_gt <- htmltools::withTags({passing_epa %>% 
   select(passer, posteam, plays, contains('mean_centered'), -mean_centered_sum_qb_epa_incomplete) %>% 
   arrange(-mean_centered_sum_qb_epa) %>% 
   gt() %>% 
@@ -392,8 +391,7 @@ qb_epa_mean_centered_gt <- htmltools::withTags({
   cols_width(everything() ~ px(120)) %>% 
   gt_border_bars_top("#1c2632", bar_height = 5) %>%
   gt_border_bars_bottom("#1c2632", bar_height = 25, text = "Source: `nflreadr::` package. Inspiration: Unexpected Points Substack.", text_weight = "normal", text_size = 12)
-  }
-  )
+  })
 
 
 ```

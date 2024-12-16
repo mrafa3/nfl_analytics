@@ -1,0 +1,98 @@
+---
+title: "NFL Fines and Suspensions"
+output: html_notebook
+---
+
+```{r setup, include=TRUE, warning=FALSE, message=FALSE}
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(
+    tidyverse,
+    nflverse,
+    plotly,
+    gt,
+    gtExtras,
+    gtUtils,
+    ggfx,
+    rvest,
+    httr,
+    jsonlite,
+    patchwork,
+    ggtext,
+    ggrepel,
+    ggimage,
+    dlookr,
+    showtext,
+    sysfonts,
+    janitor,
+    grid,
+    ggiraph,
+    glue,
+    here
+)    
+
+sysfonts::font_add_google("Lexend")
+showtext::showtext_auto()
+```
+
+```{r nfl_analytics_theme, include=TRUE}
+theme_nfl_analytics <- function(..., base_size = 12) {
+  theme(
+    text = element_text(family = "Lexend", size = base_size, color = "black"),
+    axis.ticks = element_blank(),
+    axis.title = element_text(face = "bold"),
+    axis.text = element_text(face = "bold"),
+    plot.title.position = "plot",
+    plot.title = element_textbox(size = 16, vjust = .02, hjust = 0.5, face='bold'),
+    plot.subtitle = element_textbox(hjust = 0.5, lineheight = .4),
+    plot.caption = element_textbox(size = 8),
+    panel.grid.minor = element_blank(),
+    panel.grid.major =  element_line(color = "#d0d0d0"),
+    panel.background = element_rect(fill = "#f7f7f7"),
+    plot.background = element_rect(fill = "#f7f7f7"),
+    panel.border = element_blank(),
+    legend.background = element_rect(color = "#F7F7F7"),
+    legend.key = element_rect(color = "#F7F7F7"),
+    legend.title = element_text(face = "bold", hjust = .5),
+    strip.text = element_text(face = "bold"))
+}
+```
+
+```{r teams, include=TRUE}
+teams <- load_teams(current = TRUE)
+```
+
+# The hip drop tackle 
+
+Outlawed ahead of the 2024 season. How is it being enforced?
+
+```{r}
+fines_url <- "https://www.spotrac.com/nfl/fines/_/year/2024"
+
+df_fines <- fines_url %>%
+  rvest::read_html() %>%
+  rvest::html_nodes(xpath='//*[@id="table-wrapper"]/div[2]') %>% 
+  html_table() %>% 
+  .[[1]] %>% 
+  clean_names() %>% 
+  # removes total from table
+  filter(!is.na(week))
+```
+
+```{r}
+df_fines <- df_fines %>% 
+  mutate(amount_lost = parse_number(amount_lost),
+         date = parse_date_time(date, orders = "mdy"),
+         infraction = str_extract(infraction, "(?<=/ ).*"))
+```
+
+```{r}
+df_fines %>% 
+  group_by(infraction) %>% 
+  summarise(ttl_fines = sum(amount_lost, na.rm = TRUE),
+            count_fines = n(),
+            .groups = 'drop') %>% 
+  mutate(avg_fine_per_infraction = ttl_fines / count_fines) %>% 
+  arrange(-avg_fine_per_infraction) %>% 
+  gt()
+
+```
