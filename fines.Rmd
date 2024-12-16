@@ -57,8 +57,12 @@ theme_nfl_analytics <- function(..., base_size = 12) {
 }
 ```
 
-```{r teams, include=TRUE}
+```{r teams_players, include=TRUE}
 teams <- load_teams(current = TRUE)
+
+players <- load_players() %>% 
+  filter(status == 'ACT') %>% 
+  select(display_name, gsis_id)
 ```
 
 # The hip drop tackle 
@@ -102,6 +106,22 @@ df_fines <- df_fines %>%
 df_fines <- df_fines %>% 
   mutate(amount_lost = if_else(player == "L'Jarius Sneed" & week == 6, 14069, amount_lost))
 ```
+
+```{r}
+#| warning=FALSE
+df_fines <- df_fines %>% 
+  # known: this join isn't pefect -- I could clean the df_fines table to match the players data
+  # fixing two players for exploratory tables
+  mutate(player = case_match(player,
+                             'Beanie Bishop' ~ 'Beanie Bishop Jr.',
+                             'Chauncey Gardner-Johnson' ~ 'C.J. Gardner-Johnson',
+                             .default = player)) %>% 
+  
+  left_join(x=.,
+            y=players,
+            by=c('player' = 'display_name'))
+```
+
 
 ```{r}
 df_fines %>% 
@@ -207,23 +227,21 @@ df_fines %>%
   mutate(team = case_match(team,
                            'LAR' ~ 'LA',
                            .default = team)) %>% 
-  select(team_logo_wikipedia, team_name, team_division, player, infraction, amount_lost) %>% 
+  select(team, team_name, team_division, player, infraction, amount_lost) %>% 
   arrange(-amount_lost) %>% 
   gt() %>% 
-  gt_img_rows(
-    columns = team_logo_wikipedia,
-    height = 20
-  ) %>% 
+  nflplotR::gt_nfl_logos(columns = "team") %>% 
+  # nflplotR::gt_nfl_headshots(columns = 'gsis_id') %>% 
   cols_label(team_name = '',
              team_division = '',
-             team_logo_wikipedia = '',
+             team = '',
              player = 'Player',
              amount_lost = 'Total Fine Amount ($)',
              infraction = 'Infraction') %>% 
   gt_merge_stack(col1 = team_name, col2 = team_division) %>%
   tab_header(
-    title = md("<img src='https://raw.githubusercontent.com/nflverse/nflverse-pbp/master/NFL.png' style='height:30px;'>    Fines in the 2024 NFL Season by Infraction Type"),
-    subtitle = glue("Week {max_week_param} of the 2024 Season")) %>%
+    title = md(glue("<img src='https://raw.githubusercontent.com/nflverse/nflverse-pbp/master/NFL.png' style='height:30px;'>    Fines from Week {max_week_param} of the 2024 NFL Season"))
+    ) %>%
   tab_source_note(source_note = md("**Source**: Spotrac.com")) %>% 
   grand_summary_rows(
     columns = c(amount_lost),
@@ -240,6 +258,66 @@ df_fines %>%
 
 ```{r}
 df_fines %>% 
-  arrange(-amount_lost)
+  filter(team == 'PIT') %>% 
+  left_join(x=.,
+            y=teams,
+            by=c('team' = 'team_abbr')) %>% 
+  group_by(gsis_id, player) %>% 
+  summarise(ttl_fines = n(),
+            amount_lost = sum(amount_lost, na.rm = TRUE),
+            .groups = 'drop') %>% 
+  select(gsis_id, player, ttl_fines, amount_lost) %>% 
+  arrange(-amount_lost) %>% 
+  gt() %>% 
+  cols_label(gsis_id = '',
+             player = 'Player',
+             ttl_fines = '# of Fines',
+             amount_lost = 'Total Fine Amount ($)') %>% 
+  # nflplotR::gt_nfl_logos(columns = "team") %>% 
+  nflplotR::gt_nfl_headshots(columns = 'gsis_id', height = 60) %>% 
+  fmt_currency(columns = amount_lost,
+               decimals = 0) %>% 
+  data_color(columns = amount_lost,
+             palette = c("white", "firebrick3")) %>%
+  tab_source_note(source_note = md("**Source**: Spotrac.com")) %>% 
+  gt_theme_538()
+```
+
+
+```{r}
+df_fines %>% 
+  left_join(x=.,
+            y=teams,
+            by=c('team' = 'team_abbr')) %>% 
+  group_by(gsis_id, player, team, team_name, team_division) %>% 
+  summarise(ttl_fines = n(),
+            sum_amount_lost = sum(amount_lost, na.rm = TRUE),
+            avg_fine = mean(amount_lost, na.rm = TRUE), 
+            .groups = 'drop') %>% 
+  select(gsis_id, player, team_name, team_division, team, ttl_fines, sum_amount_lost, avg_fine) %>% 
+  slice_max(n=10, sum_amount_lost) %>% 
+  arrange(-sum_amount_lost) %>% 
+  gt() %>% 
+  cols_label(gsis_id = '',
+             team = '',
+             team_name = 'Team',
+             team_division = '',
+             player = 'Player',
+             ttl_fines = '# of Fines',
+             sum_amount_lost = 'Total Fine Amount ($)',
+             avg_fine = 'Avg. Fine ($)') %>% 
+  nflplotR::gt_nfl_logos(columns = "team") %>%
+  nflplotR::gt_nfl_headshots(columns = 'gsis_id', height = 60) %>% 
+  gt_merge_stack(col1 = team_name, col2 = team_division) %>%
+  tab_header(
+    title = md(glue("<img src='https://raw.githubusercontent.com/nflverse/nflverse-pbp/master/NFL.png' style='height:30px;'>    10 Most Fined Players from the 2024 Season")),
+    subtitle = glue("Through week {max_week_param}")
+    ) %>%
+  fmt_currency(columns = c(sum_amount_lost, avg_fine),
+               decimals = 0) %>% 
+  data_color(columns = sum_amount_lost,
+             palette = c("white", "firebrick3")) %>%
+  tab_source_note(source_note = md("**Source**: Spotrac.com")) %>% 
+  gt_theme_538()
 ```
 
