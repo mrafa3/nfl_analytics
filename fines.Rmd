@@ -30,6 +30,7 @@ pacman::p_load(
     here
 )    
 
+font_add('fa-brands', 'fonts/Font Awesome 6 Brands-Regular-400.otf')
 sysfonts::font_add_google("Lexend")
 showtext::showtext_auto()
 ```
@@ -55,6 +56,10 @@ theme_nfl_analytics <- function(..., base_size = 12) {
     legend.title = element_text(face = "bold", hjust = .5),
     strip.text = element_text(face = "bold"))
 }
+
+txt <- 'black'
+github <- glue("<span style='font-family:fa-brands; color:{txt}'>&#xf09b;</span>")
+bluesky <- glue("<span style='font-family:fa-brands; color:{txt}'>&#xe671;</span>")
 ```
 
 ```{r teams_players, include=TRUE}
@@ -317,7 +322,15 @@ df_fines %>%
                decimals = 0) %>% 
   data_color(columns = sum_amount_lost,
              palette = c("white", "firebrick3")) %>%
-  tab_source_note(source_note = md("**Source**: Spotrac.com")) %>% 
+  tab_source_note(source_note = md("**Source**: Spotrac.com | @mickey.rafa")) %>% 
   gt_theme_538()
+```
+
+
+
+```{r}
+ggplot() + 
+  labs(caption = glue("{github} | {bluesky}")) + 
+  theme(plot.caption = element_textbox_simple())
 ```
 
