@@ -65,7 +65,7 @@ player_ids <- nflreadr::load_ff_playerids() %>%
 # nflreadr::dictionary_ff_playerids
 ```
 
-# Data 
+# Data
 
 ```{r play_by_play_2024, include=TRUE}
 play_by_play_2024 <- nflreadr::load_pbp(seasons = most_recent_season())
@@ -76,7 +76,6 @@ week <- play_by_play_2024 %>%
   summarise(max(week)) %>% 
   pull()
 ```
-
 
 ```{r get_pfr_data, include=TRUE}
 # pfr_stats_pass <- nflreadr::load_pfr_advstats(seasons = 2024,
@@ -111,7 +110,6 @@ min_epa <- play_by_play_2024 %>%
   summarise(min(epa, na.rm = TRUE)) %>% 
   pull()
 ```
-
 
 ```{r top_plays, include=TRUE}
 top_plays <- play_by_play_2024 %>% 
@@ -168,7 +166,6 @@ away_team_param <- top_plays %>%
   slice(1) %>% 
   pull(away_nick)
 ```
-
 
 ```{r gt_top_plays, include=TRUE}
 top_plays %>% 
@@ -279,8 +276,6 @@ play_by_play_2024 %>%
             .groups = 'drop')
 ```
 
-
-
 ```{r}
 play_by_play_2024 %>% 
   filter(posteam == 'PIT',
@@ -304,9 +299,6 @@ play_by_play_2024 %>%
   # filter(game_id == '2024_07_NYJ_PIT') %>% 
   arrange(-epa)
 ```
-
-
-
 
 ```{r}
 play_by_play_2024 %>% 
@@ -349,9 +341,6 @@ play_by_play_2024 %>%
 pfr_stats_pass
 ```
 
-
-
-
 ```{r}
 
 
@@ -361,4 +350,3 @@ pfr_stats_rec %>%
 
 dictionary_pfr_passing
 ```
-
