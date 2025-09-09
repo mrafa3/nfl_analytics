@@ -137,6 +137,62 @@ This message is displayed once every 8 hours.
 <!-- rnb-chunk-begin -->
 
 
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxudG9wX3BsYXlzIDwtIHBsYXlfYnlfcGxheV8yMDI1ICU+JSBcbiAgZmlsdGVyKHN0cl9kZXRlY3QoZ2FtZV9pZCwgJ1BJVCcpKSAlPiUgXG4gIGxlZnRfam9pbih4PS4sXG4gICAgICAgICAgICB5PXRlYW1zICU+JSBzZWxlY3QodGVhbV9hYmJyLCB0ZWFtX3dvcmRtYXJrKSxcbiAgICAgICAgICAgIGJ5PWMoJ3Bvc3RlYW0nID0gJ3RlYW1fYWJicicpKSAlPiUgXG4gIGxlZnRfam9pbih4PS4sXG4gICAgICAgICAgICB5PXRlYW1zICU+JSBzZWxlY3QodGVhbV9hYmJyLCBob21lX25pY2sgPSB0ZWFtX25pY2spLFxuICAgICAgICAgICAgYnk9YygnaG9tZV90ZWFtJyA9ICd0ZWFtX2FiYnInKSkgJT4lIFxuICBsZWZ0X2pvaW4oeD0uLFxuICAgICAgICAgICAgeT10ZWFtcyAlPiUgc2VsZWN0KHRlYW1fYWJiciwgYXdheV9uaWNrID0gdGVhbV9uaWNrKSxcbiAgICAgICAgICAgIGJ5PWMoJ2F3YXlfdGVhbScgPSAndGVhbV9hYmJyJykpICU+JSBcbiAgbXV0YXRlKGRvd25fZGlzdCA9IHBhc3RlKGRvd24sIHlkc3RvZ28sIHNlcCA9ICctJyksXG4gICAgICAgICBzY29yZSA9IHBhc3RlKHRvdGFsX2F3YXlfc2NvcmUsIHRvdGFsX2hvbWVfc2NvcmUsIHNlcCA9ICctJyksIFxuICAgICAgICAgcGxheV90eXBlID0gY2FzZV93aGVuKHBsYXlfdHlwZSA9PSAncGFzcycgfiAnUGFzcycsXG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgcGxheV90eXBlID09ICdydW4nIH4gJ1J1bicsXG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgcGxheV90eXBlID09ICdmaWVsZF9nb2FsJyB+ICdGRycsXG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgcGxheV90eXBlID09ICdwdW50JyB+ICdQdW50JyxcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBUUlVFIH4gJ090aGVyJyksXG4gICAgICAgICBhYnNfZXBhID0gYWJzKGVwYSkpICU+JSBcbiAgZ3JvdXBfYnkoZ2FtZV9pZCkgJT4lIFxuICBhcnJhbmdlKC1hYnNfZXBhKSAlPiVcbiAgc2VsZWN0KGdhbWVfaWQsIHdlZWssIGhvbWVfbmljaywgYXdheV9uaWNrLCB0ZWFtX3dvcmRtYXJrLCBxdHIsIHRpbWUsIGRvd25fZGlzdCwgeXJkbG4sIHNjb3JlLCBwbGF5X3R5cGUsXG4gICAgICAgICBkZXNjLCBlcGEsIHdwYSkgJT4lXG4gICMgZmlsdGVyaW5nIG91dCBnYXJiYWdlIHRpbWUgKENvbmdlbGlvIGJvb2sgcmVjb21tZW5kcyB1c2luZyA5NS81IHNwbGl0IGlmIHlvdSdyZSBnb2luZyB0byByZW1vdmUgZ2FyYmFnZSB0aW1lIGF0IGFsbClcbiAgZmlsdGVyKHdwID4gLjA1ICYgd3AgPCAuOTUpICU+JSBcbiAgc2xpY2UoMToxMCkgJT4lIFxuICB1bmdyb3VwKClcblxuYGBgIn0= -->
+
+```r
+top_plays <- play_by_play_2025 %>% 
+  filter(str_detect(game_id, 'PIT')) %>% 
+  left_join(x=.,
+            y=teams %>% select(team_abbr, team_wordmark),
+            by=c('posteam' = 'team_abbr')) %>% 
+  left_join(x=.,
+            y=teams %>% select(team_abbr, home_nick = team_nick),
+            by=c('home_team' = 'team_abbr')) %>% 
+  left_join(x=.,
+            y=teams %>% select(team_abbr, away_nick = team_nick),
+            by=c('away_team' = 'team_abbr')) %>% 
+  mutate(down_dist = paste(down, ydstogo, sep = '-'),
+         score = paste(total_away_score, total_home_score, sep = '-'), 
+         play_type = case_when(play_type == 'pass' ~ 'Pass',
+                               play_type == 'run' ~ 'Run',
+                               play_type == 'field_goal' ~ 'FG',
+                               play_type == 'punt' ~ 'Punt',
+                               TRUE ~ 'Other'),
+         abs_epa = abs(epa)) %>% 
+  group_by(game_id) %>% 
+  arrange(-abs_epa) %>%
+  select(game_id, week, home_nick, away_nick, team_wordmark, qtr, time, down_dist, yrdln, score, play_type,
+         desc, epa, wpa) %>%
+  # filtering out garbage time (Congelio book recommends using 95/5 split if you're going to remove garbage time at all)
+  filter(wp > .05 & wp < .95) %>% 
+  slice(1:10) %>% 
+  ungroup()
+
+```
+
+<!-- rnb-source-end -->
+
+<!-- rnb-output-begin eyJkYXRhIjoiXHUwMDFiRzE7RXJyb3IgaW4gYGZpbHRlcigpYDpcbuKEuSBJbiBhcmd1bWVudDogYHdwID4gMC4wNSAmIHdwIDwgMC45NWAuXG7ihLkgSW4gZ3JvdXAgMTogYGdhbWVfaWQgPSBcIjIwMjVfMDFfUElUX05ZSlwiYC5cbkNhdXNlZCBieSBlcnJvcjpcbiEgb2JqZWN0ICd3cCcgbm90IGZvdW5kXG5CYWNrdHJhY2U6XG4gIDEuIC4uLiAlPiUgdW5ncm91cCgpXG4gIDUuIGRwbHlyOjo6ZmlsdGVyLmRhdGEuZnJhbWUoLiwgd3AgPiAwLjA1ICYgd3AgPCAwLjk1KVxuICA2LiBkcGx5cjo6OmZpbHRlcl9yb3dzKC5kYXRhLCBkb3RzLCBieSlcbiAgNy4gZHBseXI6OjpmaWx0ZXJfZXZhbCguLi4pXG4gIDkuIG1hc2skZXZhbF9hbGxfZmlsdGVyKGRvdHMsIGVudl9maWx0ZXIpXG4gMTAuIGRwbHlyIChsb2NhbCkgZXZhbCgpXG5cdTAwMWJnXG4ifQ== -->
+
+```
+G1;Error in `filter()`:
+ℹ In argument: `wp > 0.05 & wp < 0.95`.
+ℹ In group 1: `game_id = "2025_01_PIT_NYJ"`.
+Caused by error:
+! object 'wp' not found
+Backtrace:
+  1. ... %>% ungroup()
+  5. dplyr:::filter.data.frame(., wp > 0.05 & wp < 0.95)
+  6. dplyr:::filter_rows(.data, dots, by)
+  7. dplyr:::filter_eval(...)
+  9. mask$eval_all_filter(dots, env_filter)
+ 10. dplyr (local) eval()
+g
+```
+
+
+
+<!-- rnb-output-end -->
 
 <!-- rnb-chunk-end -->
 
@@ -192,27 +248,27 @@ This message is displayed once every 8 hours.
 
 <!-- rnb-html-begin eyJtZXRhZGF0YSI6eyJjbGFzc2VzIjpbInNoaW55LnRhZyJdLCJzaXppbmdQb2xpY3kiOltdfX0= -->
 
-<div id="pkiifcqlrj" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<div id="dahrvobida" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
   <style>@import url("https://fonts.googleapis.com/css2?family=Work+Sans:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Work+Sans:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Work+Sans:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Spline+Sans+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap");
-#pkiifcqlrj table {
+#dahrvobida table {
   font-family: 'Spline Sans Mono', system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-#pkiifcqlrj thead, #pkiifcqlrj tbody, #pkiifcqlrj tfoot, #pkiifcqlrj tr, #pkiifcqlrj td, #pkiifcqlrj th {
+#dahrvobida thead, #dahrvobida tbody, #dahrvobida tfoot, #dahrvobida tr, #dahrvobida td, #dahrvobida th {
   border-style: none;
 }
 
-#pkiifcqlrj p {
+#dahrvobida p {
   margin: 0;
   padding: 0;
 }
 
-#pkiifcqlrj .gt_table {
+#dahrvobida .gt_table {
   display: table;
   border-collapse: collapse;
   line-height: normal;
@@ -238,12 +294,12 @@ This message is displayed once every 8 hours.
   border-left-color: #D3D3D3;
 }
 
-#pkiifcqlrj .gt_caption {
+#dahrvobida .gt_caption {
   padding-top: 4px;
   padding-bottom: 4px;
 }
 
-#pkiifcqlrj .gt_title {
+#dahrvobida .gt_title {
   color: #333333;
   font-size: 26px;
   font-weight: initial;
@@ -255,7 +311,7 @@ This message is displayed once every 8 hours.
   border-bottom-width: 0;
 }
 
-#pkiifcqlrj .gt_subtitle {
+#dahrvobida .gt_subtitle {
   color: #333333;
   font-size: 85%;
   font-weight: initial;
@@ -267,7 +323,7 @@ This message is displayed once every 8 hours.
   border-top-width: 0;
 }
 
-#pkiifcqlrj .gt_heading {
+#dahrvobida .gt_heading {
   background-color: #FFFFFF;
   text-align: center;
   border-bottom-color: #FFFFFF;
@@ -279,13 +335,13 @@ This message is displayed once every 8 hours.
   border-right-color: #D3D3D3;
 }
 
-#pkiifcqlrj .gt_bottom_border {
+#dahrvobida .gt_bottom_border {
   border-bottom-style: none;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
 }
 
-#pkiifcqlrj .gt_col_headings {
+#dahrvobida .gt_col_headings {
   border-top-style: none;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -300,7 +356,7 @@ This message is displayed once every 8 hours.
   border-right-color: #D3D3D3;
 }
 
-#pkiifcqlrj .gt_col_heading {
+#dahrvobida .gt_col_heading {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -320,7 +376,7 @@ This message is displayed once every 8 hours.
   overflow-x: hidden;
 }
 
-#pkiifcqlrj .gt_column_spanner_outer {
+#dahrvobida .gt_column_spanner_outer {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -332,15 +388,15 @@ This message is displayed once every 8 hours.
   padding-right: 4px;
 }
 
-#pkiifcqlrj .gt_column_spanner_outer:first-child {
+#dahrvobida .gt_column_spanner_outer:first-child {
   padding-left: 0;
 }
 
-#pkiifcqlrj .gt_column_spanner_outer:last-child {
+#dahrvobida .gt_column_spanner_outer:last-child {
   padding-right: 0;
 }
 
-#pkiifcqlrj .gt_column_spanner {
+#dahrvobida .gt_column_spanner {
   border-bottom-style: solid;
   border-bottom-width: 1px;
   border-bottom-color: #000000;
@@ -352,11 +408,11 @@ This message is displayed once every 8 hours.
   width: 100%;
 }
 
-#pkiifcqlrj .gt_spanner_row {
+#dahrvobida .gt_spanner_row {
   border-bottom-style: hidden;
 }
 
-#pkiifcqlrj .gt_group_heading {
+#dahrvobida .gt_group_heading {
   padding-top: 1.5px;
   padding-bottom: 1.5px;
   padding-left: 5px;
@@ -382,7 +438,7 @@ This message is displayed once every 8 hours.
   text-align: left;
 }
 
-#pkiifcqlrj .gt_empty_group_heading {
+#dahrvobida .gt_empty_group_heading {
   padding: 0.5px;
   color: #333333;
   background-color: #FFFFFF;
@@ -397,15 +453,15 @@ This message is displayed once every 8 hours.
   vertical-align: middle;
 }
 
-#pkiifcqlrj .gt_from_md > :first-child {
+#dahrvobida .gt_from_md > :first-child {
   margin-top: 0;
 }
 
-#pkiifcqlrj .gt_from_md > :last-child {
+#dahrvobida .gt_from_md > :last-child {
   margin-bottom: 0;
 }
 
-#pkiifcqlrj .gt_row {
+#dahrvobida .gt_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -424,7 +480,7 @@ This message is displayed once every 8 hours.
   overflow-x: hidden;
 }
 
-#pkiifcqlrj .gt_stub {
+#dahrvobida .gt_stub {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -437,7 +493,7 @@ This message is displayed once every 8 hours.
   padding-right: 5px;
 }
 
-#pkiifcqlrj .gt_stub_row_group {
+#dahrvobida .gt_stub_row_group {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -451,15 +507,15 @@ This message is displayed once every 8 hours.
   vertical-align: top;
 }
 
-#pkiifcqlrj .gt_row_group_first td {
+#dahrvobida .gt_row_group_first td {
   border-top-width: 2px;
 }
 
-#pkiifcqlrj .gt_row_group_first th {
+#dahrvobida .gt_row_group_first th {
   border-top-width: 2px;
 }
 
-#pkiifcqlrj .gt_summary_row {
+#dahrvobida .gt_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -469,16 +525,16 @@ This message is displayed once every 8 hours.
   padding-right: 5px;
 }
 
-#pkiifcqlrj .gt_first_summary_row {
+#dahrvobida .gt_first_summary_row {
   border-top-style: solid;
   border-top-color: #D3D3D3;
 }
 
-#pkiifcqlrj .gt_first_summary_row.thick {
+#dahrvobida .gt_first_summary_row.thick {
   border-top-width: 2px;
 }
 
-#pkiifcqlrj .gt_last_summary_row {
+#dahrvobida .gt_last_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -488,7 +544,7 @@ This message is displayed once every 8 hours.
   border-bottom-color: #D3D3D3;
 }
 
-#pkiifcqlrj .gt_grand_summary_row {
+#dahrvobida .gt_grand_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -498,7 +554,7 @@ This message is displayed once every 8 hours.
   padding-right: 5px;
 }
 
-#pkiifcqlrj .gt_first_grand_summary_row {
+#dahrvobida .gt_first_grand_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -508,7 +564,7 @@ This message is displayed once every 8 hours.
   border-top-color: #D3D3D3;
 }
 
-#pkiifcqlrj .gt_last_grand_summary_row_top {
+#dahrvobida .gt_last_grand_summary_row_top {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -518,11 +574,11 @@ This message is displayed once every 8 hours.
   border-bottom-color: #D3D3D3;
 }
 
-#pkiifcqlrj .gt_striped {
+#dahrvobida .gt_striped {
   background-color: rgba(128, 128, 128, 0.05);
 }
 
-#pkiifcqlrj .gt_table_body {
+#dahrvobida .gt_table_body {
   border-top-style: none;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -531,7 +587,7 @@ This message is displayed once every 8 hours.
   border-bottom-color: #D3D3D3;
 }
 
-#pkiifcqlrj .gt_footnotes {
+#dahrvobida .gt_footnotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -545,7 +601,7 @@ This message is displayed once every 8 hours.
   border-right-color: #D3D3D3;
 }
 
-#pkiifcqlrj .gt_footnote {
+#dahrvobida .gt_footnote {
   margin: 0px;
   font-size: 90%;
   padding-top: 4px;
@@ -554,7 +610,7 @@ This message is displayed once every 8 hours.
   padding-right: 5px;
 }
 
-#pkiifcqlrj .gt_sourcenotes {
+#dahrvobida .gt_sourcenotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -568,7 +624,7 @@ This message is displayed once every 8 hours.
   border-right-color: #D3D3D3;
 }
 
-#pkiifcqlrj .gt_sourcenote {
+#dahrvobida .gt_sourcenote {
   font-size: 10px;
   padding-top: 4px;
   padding-bottom: 4px;
@@ -576,89 +632,89 @@ This message is displayed once every 8 hours.
   padding-right: 5px;
 }
 
-#pkiifcqlrj .gt_left {
+#dahrvobida .gt_left {
   text-align: left;
 }
 
-#pkiifcqlrj .gt_center {
+#dahrvobida .gt_center {
   text-align: center;
 }
 
-#pkiifcqlrj .gt_right {
+#dahrvobida .gt_right {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-#pkiifcqlrj .gt_font_normal {
+#dahrvobida .gt_font_normal {
   font-weight: normal;
 }
 
-#pkiifcqlrj .gt_font_bold {
+#dahrvobida .gt_font_bold {
   font-weight: bold;
 }
 
-#pkiifcqlrj .gt_font_italic {
+#dahrvobida .gt_font_italic {
   font-style: italic;
 }
 
-#pkiifcqlrj .gt_super {
+#dahrvobida .gt_super {
   font-size: 65%;
 }
 
-#pkiifcqlrj .gt_footnote_marks {
+#dahrvobida .gt_footnote_marks {
   font-size: 75%;
   vertical-align: 0.4em;
   position: initial;
 }
 
-#pkiifcqlrj .gt_asterisk {
+#dahrvobida .gt_asterisk {
   font-size: 100%;
   vertical-align: 0;
 }
 
-#pkiifcqlrj .gt_indent_1 {
+#dahrvobida .gt_indent_1 {
   text-indent: 5px;
 }
 
-#pkiifcqlrj .gt_indent_2 {
+#dahrvobida .gt_indent_2 {
   text-indent: 10px;
 }
 
-#pkiifcqlrj .gt_indent_3 {
+#dahrvobida .gt_indent_3 {
   text-indent: 15px;
 }
 
-#pkiifcqlrj .gt_indent_4 {
+#dahrvobida .gt_indent_4 {
   text-indent: 20px;
 }
 
-#pkiifcqlrj .gt_indent_5 {
+#dahrvobida .gt_indent_5 {
   text-indent: 25px;
 }
 
-#pkiifcqlrj .katex-display {
+#dahrvobida .katex-display {
   display: inline-flex !important;
   margin-bottom: 0.75em !important;
 }
 
-#pkiifcqlrj div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
+#dahrvobida div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
   height: 0px !important;
 }
 
-#pkiifcqlrj tbody tr:last-child {
+#dahrvobida tbody tr:last-child {
   border-bottom: 2px solid #ffffff00;
 }
 
-#pkiifcqlrj .gt_subtitle {
+#dahrvobida .gt_subtitle {
   padding-top: 0px !important;
   padding-bottom: 4px !important;
 }
 
-#pkiifcqlrj .gt_sourcenote {
+#dahrvobida .gt_sourcenote {
   border-bottom-color: #FFFDF5 !important;
 }
 
-#pkiifcqlrj .gt_heading {
+#dahrvobida .gt_heading {
   padding-bottom: 0px;
   padding-top: 6px;
 }
@@ -666,15 +722,12 @@ This message is displayed once every 8 hours.
   <table class="gt_table" data-quarto-disable-processing="false" data-quarto-bootstrap="false">
   <thead>
     <tr class="gt_heading">
-      <td colspan="14" class="gt_heading gt_title gt_font_normal" style="font-size: 22px; font-weight: 650; font-family: 'Work Sans';"><span class='gt_from_md'>Top plays from the Jets vs Steelers<br>Week 1 Matchup</span></td>
+      <td colspan="10" class="gt_heading gt_title gt_font_normal" style="font-size: 22px; font-weight: 650; font-family: 'Work Sans';"><span class='gt_from_md'>Top plays from the Jets vs Steelers<br>Week 1 Matchup</span></td>
     </tr>
     <tr class="gt_heading">
-      <td colspan="14" class="gt_heading gt_subtitle gt_font_normal gt_bottom_border" style="font-family: 'Work Sans'; font-size: 14px; font-weight: 500;"><span class='gt_from_md'>Plays ranked by absolute value of Expected Points Added<br>Excluding garbage time where win probabilty is .05 &lt; x &lt; .95</span></td>
+      <td colspan="10" class="gt_heading gt_subtitle gt_font_normal gt_bottom_border" style="font-family: 'Work Sans'; font-size: 14px; font-weight: 500;"><span class='gt_from_md'>Plays ranked by absolute value of Expected Points Added<br>Excluding garbage time where win probabilty is .05 &lt; x &lt; .95</span></td>
     </tr>
     <tr class="gt_col_headings">
-      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" style="border-bottom-width: 3px; border-bottom-style: solid; border-bottom-color: #000000; font-weight: 650; font-family: 'Work Sans'; font-size: 12px; text-transform: uppercase;" scope="col" id="week">week</th>
-      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" style="border-bottom-width: 3px; border-bottom-style: solid; border-bottom-color: #000000; font-weight: 650; font-family: 'Work Sans'; font-size: 12px; text-transform: uppercase;" scope="col" id="home_nick">home_nick</th>
-      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" style="border-bottom-width: 3px; border-bottom-style: solid; border-bottom-color: #000000; font-weight: 650; font-family: 'Work Sans'; font-size: 12px; text-transform: uppercase;" scope="col" id="away_nick">away_nick</th>
       <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" style="border-bottom-width: 3px; border-bottom-style: solid; border-bottom-color: #000000; font-weight: 650; font-family: 'Work Sans'; font-size: 12px; text-transform: uppercase;" scope="col" id="team_wordmark">Possessing team</th>
       <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" style="border-bottom-width: 3px; border-bottom-style: solid; border-bottom-color: #000000; font-weight: 650; font-family: 'Work Sans'; font-size: 12px; text-transform: uppercase;" scope="col" id="qtr">Qtr</th>
       <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" style="border-bottom-width: 3px; border-bottom-style: solid; border-bottom-color: #000000; font-weight: 650; font-family: 'Work Sans'; font-size: 12px; text-transform: uppercase;" scope="col" id="time">Time</th>
@@ -684,15 +737,11 @@ This message is displayed once every 8 hours.
       <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" style="border-bottom-width: 3px; border-bottom-style: solid; border-bottom-color: #000000; font-weight: 650; font-family: 'Work Sans'; font-size: 12px; text-transform: uppercase;" scope="col" id="play_type">Play</th>
       <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" style="border-bottom-width: 3px; border-bottom-style: solid; border-bottom-color: #000000; font-weight: 650; font-family: 'Work Sans'; font-size: 12px; text-transform: uppercase;" scope="col" id="desc">Description</th>
       <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" style="border-bottom-width: 3px; border-bottom-style: solid; border-bottom-color: #000000; font-weight: 650; font-family: 'Work Sans'; font-size: 12px; text-transform: uppercase;" scope="col" id="epa">epa</th>
-      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" style="border-bottom-width: 3px; border-bottom-style: solid; border-bottom-color: #000000; font-weight: 650; font-family: 'Work Sans'; font-size: 12px; text-transform: uppercase;" scope="col" id="wp">Win Prob (pre-play)</th>
-      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" style="border-bottom-width: 3px; border-bottom-style: solid; border-bottom-color: #000000; font-weight: 650; font-family: 'Work Sans'; font-size: 12px; text-transform: uppercase;" scope="col" id="wp_post_play">Win Prob (post-play)</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" style="border-bottom-width: 3px; border-bottom-style: solid; border-bottom-color: #000000; font-weight: 650; font-family: 'Work Sans'; font-size: 12px; text-transform: uppercase;" scope="col" id="wpa">Win Prob Change</th>
     </tr>
   </thead>
   <tbody class="gt_table_body">
-    <tr><td headers="week" class="gt_row gt_center" style="border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">1</td>
-<td headers="home_nick" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">Jets</td>
-<td headers="away_nick" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">Steelers</td>
-<td headers="team_wordmark" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;"><img src="https://github.com/nflverse/nflverse-pbp/raw/master/wordmarks/NYJ.png" style="height:30px;"></td>
+    <tr><td headers="team_wordmark" class="gt_row gt_center" style="border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;"><img src="https://github.com/nflverse/nflverse-pbp/raw/master/wordmarks/NYJ.png" style="height:30px;"></td>
 <td headers="qtr" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">4</td>
 <td headers="time" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">14:57</td>
 <td headers="down_dist" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">NA-0</td>
@@ -700,13 +749,9 @@ This message is displayed once every 8 hours.
 <td headers="score" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">24-26</td>
 <td headers="play_type" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">Other</td>
 <td headers="desc" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">9-C.Boswell kicks 64 yards from PIT 35 to NYJ 1. 3-X.Gipson to NYJ 20 for 19 yards (14-K.Gainwell). FUMBLES (14-K.Gainwell), RECOVERED by PIT-15-B.Skowronek at NYJ 22. 15-B.Skowronek to NYJ 22 for no gain (3-X.Gipson).</td>
-<td headers="epa" class="gt_row gt_center" style="background-color: #FF2410; color: #FFFFFF; border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">−5.68</td>
-<td headers="wp" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">70.9%</td>
-<td headers="wp_post_play" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">43.2%</td></tr>
-    <tr><td headers="week" class="gt_row gt_center" style="border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">1</td>
-<td headers="home_nick" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">Jets</td>
-<td headers="away_nick" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">Steelers</td>
-<td headers="team_wordmark" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;"><img src="https://github.com/nflverse/nflverse-pbp/raw/master/wordmarks/NYJ.png" style="height:30px;"></td>
+<td headers="epa" class="gt_row gt_center" style="background-color: #FF2410; color: #FFFFFF; border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">−5.7</td>
+<td headers="wpa" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">−27.7%</td></tr>
+    <tr><td headers="team_wordmark" class="gt_row gt_center" style="border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;"><img src="https://github.com/nflverse/nflverse-pbp/raw/master/wordmarks/NYJ.png" style="height:30px;"></td>
 <td headers="qtr" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">1</td>
 <td headers="time" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">00:31</td>
 <td headers="down_dist" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">1-10</td>
@@ -714,13 +759,9 @@ This message is displayed once every 8 hours.
 <td headers="score" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">7-9</td>
 <td headers="play_type" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">Pass</td>
 <td headers="desc" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">(:31) (Shotgun) 7-J.Fields pass deep right to 5-G.Wilson for 33 yards, TOUCHDOWN.</td>
-<td headers="epa" class="gt_row gt_center" style="background-color: #7BA56E; color: #FFFFFF; border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">3.14</td>
-<td headers="wp" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">47.1%</td>
-<td headers="wp_post_play" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">59.0%</td></tr>
-    <tr><td headers="week" class="gt_row gt_center" style="border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">1</td>
-<td headers="home_nick" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">Jets</td>
-<td headers="away_nick" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">Steelers</td>
-<td headers="team_wordmark" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;"><img src="https://github.com/nflverse/nflverse-pbp/raw/master/wordmarks/PIT.png" style="height:30px;"></td>
+<td headers="epa" class="gt_row gt_center" style="background-color: #7BA56E; color: #FFFFFF; border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">3.1</td>
+<td headers="wpa" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">11.8%</td></tr>
+    <tr><td headers="team_wordmark" class="gt_row gt_center" style="border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;"><img src="https://github.com/nflverse/nflverse-pbp/raw/master/wordmarks/PIT.png" style="height:30px;"></td>
 <td headers="qtr" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">1</td>
 <td headers="time" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">06:22</td>
 <td headers="down_dist" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">3-10</td>
@@ -728,13 +769,9 @@ This message is displayed once every 8 hours.
 <td headers="score" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">0-3</td>
 <td headers="play_type" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">Pass</td>
 <td headers="desc" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">(6:22) (Shotgun) 8-A.Rodgers pass short right to 4-D.Metcalf pushed ob at NYJ 37 for 23 yards (8-A.Cisco).</td>
-<td headers="epa" class="gt_row gt_center" style="background-color: #81A975; color: #FFFFFF; border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">2.98</td>
-<td headers="wp" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">38.9%</td>
-<td headers="wp_post_play" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">52.2%</td></tr>
-    <tr><td headers="week" class="gt_row gt_center" style="border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">1</td>
-<td headers="home_nick" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">Jets</td>
-<td headers="away_nick" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">Steelers</td>
-<td headers="team_wordmark" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;"><img src="https://github.com/nflverse/nflverse-pbp/raw/master/wordmarks/PIT.png" style="height:30px;"></td>
+<td headers="epa" class="gt_row gt_center" style="background-color: #81A975; color: #FFFFFF; border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">3.0</td>
+<td headers="wpa" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">13.3%</td></tr>
+    <tr><td headers="team_wordmark" class="gt_row gt_center" style="border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;"><img src="https://github.com/nflverse/nflverse-pbp/raw/master/wordmarks/PIT.png" style="height:30px;"></td>
 <td headers="qtr" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">1</td>
 <td headers="time" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">03:44</td>
 <td headers="down_dist" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">2-7</td>
@@ -742,13 +779,9 @@ This message is displayed once every 8 hours.
 <td headers="score" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">6-3</td>
 <td headers="play_type" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">Pass</td>
 <td headers="desc" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">(3:44) 8-A.Rodgers pass short right to 15-B.Skowronek for 22 yards, TOUCHDOWN.</td>
-<td headers="epa" class="gt_row gt_center" style="background-color: #83AA76; color: #FFFFFF; border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">2.94</td>
-<td headers="wp" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">53.2%</td>
-<td headers="wp_post_play" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">60.1%</td></tr>
-    <tr><td headers="week" class="gt_row gt_center" style="border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">1</td>
-<td headers="home_nick" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">Jets</td>
-<td headers="away_nick" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">Steelers</td>
-<td headers="team_wordmark" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;"><img src="https://github.com/nflverse/nflverse-pbp/raw/master/wordmarks/PIT.png" style="height:30px;"></td>
+<td headers="epa" class="gt_row gt_center" style="background-color: #83AA76; color: #FFFFFF; border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">2.9</td>
+<td headers="wpa" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">7.0%</td></tr>
+    <tr><td headers="team_wordmark" class="gt_row gt_center" style="border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;"><img src="https://github.com/nflverse/nflverse-pbp/raw/master/wordmarks/PIT.png" style="height:30px;"></td>
 <td headers="qtr" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">4</td>
 <td headers="time" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">01:08</td>
 <td headers="down_dist" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">4-11</td>
@@ -756,13 +789,9 @@ This message is displayed once every 8 hours.
 <td headers="score" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">34-32</td>
 <td headers="play_type" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">FG</td>
 <td headers="desc" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">(1:08) 9-C.Boswell 60 yard field goal is GOOD, Center-46-C.Kuntz, Holder-3-C.Waitman.</td>
-<td headers="epa" class="gt_row gt_center" style="background-color: #85AC79; color: #FFFFFF; border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">2.88</td>
-<td headers="wp" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">35.3%</td>
-<td headers="wp_post_play" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">58.2%</td></tr>
-    <tr><td headers="week" class="gt_row gt_center" style="border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">1</td>
-<td headers="home_nick" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">Jets</td>
-<td headers="away_nick" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">Steelers</td>
-<td headers="team_wordmark" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;"><img src="https://github.com/nflverse/nflverse-pbp/raw/master/wordmarks/NYJ.png" style="height:30px;"></td>
+<td headers="epa" class="gt_row gt_center" style="background-color: #85AC79; color: #FFFFFF; border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">2.9</td>
+<td headers="wpa" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">22.9%</td></tr>
+    <tr><td headers="team_wordmark" class="gt_row gt_center" style="border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;"><img src="https://github.com/nflverse/nflverse-pbp/raw/master/wordmarks/NYJ.png" style="height:30px;"></td>
 <td headers="qtr" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">2</td>
 <td headers="time" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">05:59</td>
 <td headers="down_dist" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">3-9</td>
@@ -770,13 +799,9 @@ This message is displayed once every 8 hours.
 <td headers="score" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">10-16</td>
 <td headers="play_type" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">Pass</td>
 <td headers="desc" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">(5:59) (Shotgun) 7-J.Fields pass deep middle to 16-T.Johnson to PIT 38 for 24 yards (56-A.Highsmith).</td>
-<td headers="epa" class="gt_row gt_center" style="background-color: #86AD7A; color: #FFFFFF; border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">2.85</td>
-<td headers="wp" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">70.7%</td>
-<td headers="wp_post_play" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">77.3%</td></tr>
-    <tr><td headers="week" class="gt_row gt_center" style="border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">1</td>
-<td headers="home_nick" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">Jets</td>
-<td headers="away_nick" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">Steelers</td>
-<td headers="team_wordmark" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;"><img src="https://github.com/nflverse/nflverse-pbp/raw/master/wordmarks/PIT.png" style="height:30px;"></td>
+<td headers="epa" class="gt_row gt_center" style="background-color: #86AD7A; color: #FFFFFF; border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">2.9</td>
+<td headers="wpa" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">6.6%</td></tr>
+    <tr><td headers="team_wordmark" class="gt_row gt_center" style="border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;"><img src="https://github.com/nflverse/nflverse-pbp/raw/master/wordmarks/PIT.png" style="height:30px;"></td>
 <td headers="qtr" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">4</td>
 <td headers="time" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">14:12</td>
 <td headers="down_dist" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">2-6</td>
@@ -784,13 +809,9 @@ This message is displayed once every 8 hours.
 <td headers="score" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">30-26</td>
 <td headers="play_type" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">Pass</td>
 <td headers="desc" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">(14:12) 8-A.Rodgers pass deep right to 19-C.Austin for 18 yards, TOUCHDOWN.</td>
-<td headers="epa" class="gt_row gt_center" style="background-color: #8EB283; color: #000000; border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">2.65</td>
-<td headers="wp" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">55.5%</td>
-<td headers="wp_post_play" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">67.1%</td></tr>
-    <tr><td headers="week" class="gt_row gt_center" style="border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">1</td>
-<td headers="home_nick" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">Jets</td>
-<td headers="away_nick" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">Steelers</td>
-<td headers="team_wordmark" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;"><img src="https://github.com/nflverse/nflverse-pbp/raw/master/wordmarks/PIT.png" style="height:30px;"></td>
+<td headers="epa" class="gt_row gt_center" style="background-color: #8EB283; color: #000000; border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">2.6</td>
+<td headers="wpa" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">11.6%</td></tr>
+    <tr><td headers="team_wordmark" class="gt_row gt_center" style="border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;"><img src="https://github.com/nflverse/nflverse-pbp/raw/master/wordmarks/PIT.png" style="height:30px;"></td>
 <td headers="qtr" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">2</td>
 <td headers="time" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">01:07</td>
 <td headers="down_dist" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">2-10</td>
@@ -798,13 +819,9 @@ This message is displayed once every 8 hours.
 <td headers="score" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">10-19</td>
 <td headers="play_type" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">Pass</td>
 <td headers="desc" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">(1:07) (Shotgun) 8-A.Rodgers pass deep right to 19-C.Austin to NYJ 3 for 21 yards (21-B.Stephens).</td>
-<td headers="epa" class="gt_row gt_center" style="background-color: #92B486; color: #000000; border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">2.57</td>
-<td headers="wp" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">27.6%</td>
-<td headers="wp_post_play" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">31.7%</td></tr>
-    <tr><td headers="week" class="gt_row gt_center" style="border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">1</td>
-<td headers="home_nick" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">Jets</td>
-<td headers="away_nick" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">Steelers</td>
-<td headers="team_wordmark" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;"><img src="https://github.com/nflverse/nflverse-pbp/raw/master/wordmarks/NYJ.png" style="height:30px;"></td>
+<td headers="epa" class="gt_row gt_center" style="background-color: #92B486; color: #000000; border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">2.6</td>
+<td headers="wpa" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">4.2%</td></tr>
+    <tr><td headers="team_wordmark" class="gt_row gt_center" style="border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;"><img src="https://github.com/nflverse/nflverse-pbp/raw/master/wordmarks/NYJ.png" style="height:30px;"></td>
 <td headers="qtr" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">4</td>
 <td headers="time" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">07:06</td>
 <td headers="down_dist" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">4-1</td>
@@ -812,13 +829,9 @@ This message is displayed once every 8 hours.
 <td headers="score" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">31-32</td>
 <td headers="play_type" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">Run</td>
 <td headers="desc" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">(7:06) 7-J.Fields right end for 1 yard, TOUCHDOWN. NYJ-76-J.Simpson was injured during the play.</td>
-<td headers="epa" class="gt_row gt_center" style="background-color: #93B587; color: #000000; border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">2.54</td>
-<td headers="wp" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">39.9%</td>
-<td headers="wp_post_play" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">59.5%</td></tr>
-    <tr><td headers="week" class="gt_row gt_center" style="border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">1</td>
-<td headers="home_nick" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">Jets</td>
-<td headers="away_nick" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">Steelers</td>
-<td headers="team_wordmark" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;"><img src="https://github.com/nflverse/nflverse-pbp/raw/master/wordmarks/PIT.png" style="height:30px;"></td>
+<td headers="epa" class="gt_row gt_center" style="background-color: #93B587; color: #000000; border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">2.5</td>
+<td headers="wpa" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">19.6%</td></tr>
+    <tr><td headers="team_wordmark" class="gt_row gt_center" style="border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;"><img src="https://github.com/nflverse/nflverse-pbp/raw/master/wordmarks/PIT.png" style="height:30px;"></td>
 <td headers="qtr" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">2</td>
 <td headers="time" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">13:30</td>
 <td headers="down_dist" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">4-6</td>
@@ -826,13 +839,12 @@ This message is displayed once every 8 hours.
 <td headers="score" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">10-9</td>
 <td headers="play_type" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">FG</td>
 <td headers="desc" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">(13:30) 9-C.Boswell 56 yard field goal is GOOD, Center-46-C.Kuntz, Holder-3-C.Waitman.</td>
-<td headers="epa" class="gt_row gt_center" style="background-color: #99B98E; color: #000000; border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">2.38</td>
-<td headers="wp" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">46.9%</td>
-<td headers="wp_post_play" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">47.6%</td></tr>
+<td headers="epa" class="gt_row gt_center" style="background-color: #99B98E; color: #000000; border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">2.4</td>
+<td headers="wpa" class="gt_row gt_center" style="border-left-width: 0.5px; border-left-style: solid; border-left-color: black; border-top-width: 1.5px; border-top-style: dotted; border-top-color: black;">0.7%</td></tr>
   </tbody>
   <tfoot class="gt_sourcenotes">
     <tr>
-      <td class="gt_sourcenote" colspan="14">Replicating work done by Kevin Cole in the Unexpected Points Substack newsletter</td>
+      <td class="gt_sourcenote" colspan="10">Replicating work done by Kevin Cole in the Unexpected Points Substack newsletter</td>
     </tr>
   </tfoot>
   
@@ -1044,15 +1056,13 @@ pfr_stats_rush <- nflreadr::load_pfr_advstats(seasons = 2025,
 <!-- rnb-chunk-begin -->
 
 
-<!-- rnb-frame-begin eyJtZXRhZGF0YSI6eyJjbGFzc2VzIjpbImRhdGEuZnJhbWUiXSwibnJvdyI6MjgsIm5jb2wiOjMsInN1bW1hcnkiOnsiRGVzY3JpcHRpb24iOlsiZGYgWzI4IMOXIDNdIl19fSwicmRmIjoiSDRzSUFBQUFBQUFBQSsxVlhXdmJNQlJWODlYRnFidEE2VVpZeHZRSEVoaURzdGVWVXRqTEdySU91aWVqMklvdDZzaENrcHRsVC92bDNTUkhVbTA1Wlc5N21zR0o3cm5uWG4zNG5xdmwxZDJINEM0QUFIUkJyNmQrKzJvSSt0OXVyMmNmQWVoMWxIRUVlbUNvLzM4bzkxbkZCR0NzM3FseERGaU9kcGdicXljeDJqalBta2NrTVZiSWtCQVJraEp2bUJRR1BGbHBJSWxXS004dEZzaU1GMXUwUlR1TERBUWo5OWhhL1lRWHpCb3Z0Qkd4V05yZ0ZVcWlLb0ZsaEE2cDBjS0NSaktWVFdaZ3dDZmFRR0FrQ21xc0VTdmllNnlDeUFiYlBIb3NvbFZPNUUrY05NR3M1Snc0Y0doQVluTy8zQU9NWXlGSzduZ25GcWd0WThoWkVlbGpGblZnaDNqaXpyRmltQU0yMktuRFdreGVpc3huVmxpZE9XTElUeGxhYU05ckZzSXd6aEJIc1hTMThIZmdtSlliekVuODMveEhadk9MalJhVmRDRkZycUF0VkpOeHVMaGV3cjNJNGVjckI2b3lnTDZhTHlzMXc0YWFiMXRxL2xwWDgybmxGMURybURrVlRCYVl4NWhLV0t5aFBFUUlMbEVDRytwOTF3NlJHWkp3aXpsV0s3S0I0eHNLSmVJcGxzM3dOKzN3d2pMZHd1dmQ0TlduQjh4UmlxSFdNU1FVN3J1RDhiNytVbTVXNnNCME5xMXoyR3dSTFhleldaeTEzSzV0VEh5WDMwRGVOalppbHVlVGFoTXNGemV3M2x2QzcxcmJldlBLNHc3M2ljL3FIOTZqbmV1cUlEU0Z1d001enBlcXd6d2JxWjNQUlU1MFVVTFZPSWpDMllIQ2F4RmNKdThXNit0U3Q0MnJhOEUxd2JucjB3bVNLSkk3NWhTUllCRnp3blJ1TDl0UWxjbmNaZ3pWMi9rRnFtZnFUeHZuYWxGbVdnc0dlcWI1bW12eEFmRG9oUndYMVl3cXFLTnYzWUVYZk1ROVlGeFN2WkprRm1jbHZaKzl2L0Q4WFVaVFBXa0Y3Wi9RaktlMWNYZS9qTTV2RXo2d3RZOXBTcWc5azM2T1ZqaTNtUlA4NEM2U1lsdWR4NXh4UXQyZHJOVTBsNFZFTmlTSWk5d2kxZGJCNHgrbzIrTjBpd2dBQUE9PSJ9 -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuZGljdGlvbmFyeV9wZnJfcGFzc2luZ1xuYGBgIn0= -->
 
-<div data-pagedtable="false">
-  <script data-pagedtable-source type="application/json">
-{"columns":[{"label":["field"],"name":[1],"type":["chr"],"align":["left"]},{"label":["data_type"],"name":[2],"type":["chr"],"align":["left"]},{"label":["description"],"name":[3],"type":["chr"],"align":["left"]}],"data":[{"1":"player","2":"character","3":"Player name"},{"1":"team","2":"character","3":"Player team"},{"1":"pfr_id","2":"character","3":"PFR player ID"},{"1":"pass_attempts","2":"numeric","3":"Pass attempts"},{"1":"batted_balls","2":"numeric","3":"Batted balls"},{"1":"throwaways","2":"numeric","3":"Throwaways"},{"1":"spikes","2":"numeric","3":"Spikes"},{"1":"drops","2":"numeric","3":"Throws dropped"},{"1":"drop_pct","2":"numeric","3":"Percent of throws dropped"},{"1":"bad_throws","2":"numeric","3":"Bad throws"},{"1":"bad_throw_pct","2":"numeric","3":"Percent of throws that were bad"},{"1":"on_tgt_throws","2":"numeric","3":"On target throws"},{"1":"on_tgt_pct","2":"numeric","3":"Percent of throws on target"},{"1":"season","2":"numeric","3":"Season"},{"1":"pocket_time","2":"numeric","3":"Average time in pocket"},{"1":"times_blitzed","2":"numeric","3":"Number of times blitzed"},{"1":"times_hurried","2":"numeric","3":"Number of times hurried"},{"1":"times_hit","2":"numeric","3":"Number of times hit"},{"1":"times_pressured","2":"numeric","3":"Number of times pressured"},{"1":"pressure_pct","2":"numeric","3":"Percent of the time pressured"},{"1":"rpo_plays","2":"numeric","3":"Number of RPO plays"},{"1":"rpo_yards","2":"numeric","3":"Yards on RPOs"},{"1":"rpo_pass_att","2":"numeric","3":"Number of pass attempts on RPOs"},{"1":"rpo_pass_yards","2":"numeric","3":"Passing yards on RPOs"},{"1":"rpo_rush_att","2":"numeric","3":"Rush attempts on RPOs"},{"1":"rpo_rush_yards","2":"numeric","3":"Rushing yards on RPOs"},{"1":"pa_pass_att","2":"numeric","3":"Play action pass attempts"},{"1":"pa_pass_yards","2":"numeric","3":"Play action passing yards"}],"options":{"columns":{"min":{},"max":[10],"total":[3]},"rows":{"min":[10],"max":[10],"total":[28]},"pages":{}}}
-  </script>
-</div>
+```r
+dictionary_pfr_passing
+```
 
-<!-- rnb-frame-end -->
+<!-- rnb-source-end -->
 
 <!-- rnb-chunk-end -->
 
