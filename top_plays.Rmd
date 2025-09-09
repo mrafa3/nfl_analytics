@@ -68,41 +68,18 @@ player_ids <- nflreadr::load_ff_playerids() %>%
 # Data
 
 ```{r play_by_play_2024, include=TRUE}
-play_by_play_2024 <- nflreadr::load_pbp(seasons = most_recent_season())
+play_by_play_2025 <- nflreadr::load_pbp(seasons = most_recent_season())
 ```
 
 ```{r week, include=TRUE}
-week <- play_by_play_2024 %>% 
+week <- play_by_play_2025 %>% 
   summarise(max(week)) %>% 
   pull()
 ```
 
-```{r get_pfr_data, include=TRUE}
-# pfr_stats_pass <- nflreadr::load_pfr_advstats(seasons = 2024,
-#                                               stat_type = 'pass',
-#                                               summary_level = "week") %>% 
-#   left_join(x=.,
-#             y=player_ids,
-#             by='pfr_player_id')
-# 
-# pfr_stats_rec <- nflreadr::load_pfr_advstats(seasons = 2024,
-#                                               stat_type = 'rec',
-#                                               summary_level = "week") %>% 
-#   left_join(x=.,
-#             y=player_ids,
-#             by='pfr_player_id')
-# 
-# 
-# pfr_stats_rush <- nflreadr::load_pfr_advstats(seasons = 2024,
-#                                               stat_type = 'rush',
-#                                               summary_level = "week") %>% 
-#   left_join(x=.,
-#             y=player_ids,
-#             by='pfr_player_id')
-```
 
 ```{r max_min_epa, include=TRUE, echo=FALSE}
-max_epa <- play_by_play_2024 %>% 
+max_epa <- play_by_play_2025 %>% 
   summarise(max(epa, na.rm = TRUE)) %>% 
   pull()
 
@@ -112,7 +89,7 @@ min_epa <- play_by_play_2024 %>%
 ```
 
 ```{r top_plays, include=TRUE}
-top_plays <- play_by_play_2024 %>% 
+top_plays <- play_by_play_2025 %>% 
   filter(str_detect(game_id, 'PIT')) %>% 
   left_join(x=.,
             y=teams %>% select(team_abbr, team_wordmark),
@@ -149,7 +126,7 @@ top_plays %>%
 
 ```{r top_plays_params, include=TRUE}
 # choose the game
-game_id_param <- '2024_10_PIT_WAS'
+game_id_param <- '2025_01_PIT_NYJ'
 
 week_param <- top_plays %>% 
   filter(game_id == game_id_param) %>% 
@@ -234,8 +211,8 @@ top_plays %>%
 ```
 
 ```{r}
-play_by_play_2024 %>% 
-  filter(game_id == '2024_08_NYG_PIT',
+play_by_play_2025 %>% 
+  filter(game_id == '2025_01_PIT_NYJ',
          play_type %in% c('run', 'pass')) %>% 
   group_by(posteam, play_type) %>% 
   summarise(success_rate = round(100*mean(success[!is.na(down)], na.rm = TRUE), 1),
@@ -245,8 +222,8 @@ play_by_play_2024 %>%
 ```
 
 ```{r}
-play_by_play_2024 %>% 
-  filter(game_id == '2024_08_NYG_PIT',
+play_by_play_2025 %>% 
+  filter(game_id == '2025_01_PIT_NYJ',
          play_type %in% c('run', 'pass')) %>% 
   group_by(posteam) %>% 
   summarise(success_rate = round(100*mean(success, na.rm = TRUE), 1),
@@ -256,7 +233,7 @@ play_by_play_2024 %>%
 
 ```{r}
 play_by_play_2024 %>% 
-  filter(game_id == '2024_08_NYG_PIT',
+  filter(game_id == '2025_01_PIT_NYJ',
          !is.na(posteam)) %>% 
   # select(success, everything())
   group_by(posteam, home_team) %>% 
@@ -272,12 +249,38 @@ play_by_play_2024 %>%
          epa_special_penalties_diff = epa_special_penalties_PIT - epa_special_penalties_NYG) %>% 
   select(home_team, contains('diff'), everything())
 
-            avg_epa = round(mean(epa, na.rm = TRUE), 2),
-            .groups = 'drop')
+            
+```
+
+
+# Exploring summary statistics and totals using PFR stats
+
+```{r get_pfr_data, include=TRUE}
+pfr_stats_pass <- nflreadr::load_pfr_advstats(seasons = 2025,
+                                              stat_type = 'pass',
+                                              summary_level = "week") %>%
+  left_join(x=.,
+            y=player_ids,
+            by='pfr_player_id')
+
+pfr_stats_rec <- nflreadr::load_pfr_advstats(seasons = 2025,
+                                              stat_type = 'rec',
+                                              summary_level = "week") %>%
+  left_join(x=.,
+            y=player_ids,
+            by='pfr_player_id')
+
+
+pfr_stats_rush <- nflreadr::load_pfr_advstats(seasons = 2025,
+                                              stat_type = 'rush',
+                                              summary_level = "week") %>%
+  left_join(x=.,
+            y=player_ids,
+            by='pfr_player_id')
 ```
 
 ```{r}
-play_by_play_2024 %>% 
+play_by_play_2025 %>% 
   filter(posteam == 'PIT',
          !is.na(receiver_player_name)) %>% 
   group_by(game_id, posteam, receiver_player_id, receiver_player_name) %>%
@@ -301,7 +304,7 @@ play_by_play_2024 %>%
 ```
 
 ```{r}
-play_by_play_2024 %>% 
+play_by_play_2025 %>% 
   filter(posteam == 'PIT',
          !is.na(passer),
          play_type == 'pass') %>% 
@@ -337,16 +340,7 @@ play_by_play_2024 %>%
   arrange(-epa)
 ```
 
-```{r}
-pfr_stats_pass
-```
 
 ```{r}
-
-
-pfr_stats_rec %>% 
-  # filter(str_detect(game_id, '06'))
-  filter(game_id == '2024_06_PIT_LV')
-
 dictionary_pfr_passing
 ```
