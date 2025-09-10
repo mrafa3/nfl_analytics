@@ -212,10 +212,16 @@ top_plays %>%
 play_by_play_2025 %>% 
   filter(game_id == '2025_01_PIT_NYJ',
          play_type %in% c('run', 'pass')) %>% 
+  # select(posteam, penalty, success, play_type, everything()) %>% 
+  # filter(is.na(down))
+  # filter(is.na(down))
   group_by(posteam, play_type) %>% 
-  summarise(success_rate = round(100*mean(success[!is.na(down)], na.rm = TRUE), 1),
+  summarise(success_rate = round(100*mean(success, na.rm = TRUE), 1),
             avg_epa = round(mean(epa[penalty == 0], na.rm = TRUE), 2),
             .groups = 'drop') %>% 
+  # summarise(success_rate = round(100*mean(success[!is.na(down)], na.rm = TRUE), 1),
+  #           avg_epa = round(mean(epa[penalty == 0], na.rm = TRUE), 2),
+  #           .groups = 'drop') %>% 
   pivot_wider(names_from = play_type, values_from = success_rate:avg_epa)
 ```
 
