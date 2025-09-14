@@ -53,15 +53,52 @@ theme_nfl_analytics <- function(..., base_size = 12) {
 
 # Data
 
-```{r play_by_play_2024, include=TRUE}
-play_by_play_2024 <- nflreadr::load_pbp(seasons = 2024)
+```{r play_by_play, include=TRUE}
+play_by_play <- nflreadr::load_pbp(seasons = 2000:2024)
 ```
 
-# 
+# Expected Points
+
+To do:
+
+*  This doesn't yet take into account what the opponent does on their *next* drive, which seems to be what expected points is doing.
+*  I am using `geom_smooth()` to create a loess model, but I could fit a GAM to the data (distance to endzone stratified by down). I think that expected points is a model-based estimate.
 
 ```{r}
-play_by_play_2024 %>% 
-  group_by(down, )
+scoring_tibble <- c('Punt' = 0,
+                    'Touchdown' = 6,
+                    'Turnover' = 0,
+                    'Field goal' = 3,
+                    'Turnover on downs' = 0,
+                    'End of half' = 0,
+                    'Missed field goal' = 0,
+                    'Opp touchdown' = -6,
+                    'Safety' = -2)
+```
+
+
+```{r expected_points, include=TRUE}
+expected_points <- play_by_play %>% 
+  filter(!is.na(down)) %>%
+  mutate(points_drive = scoring_tibble[fixed_drive_result] %||% NA_integer_) %>% 
+  # filter(!is.na(down), !is.na(yardline_100), !is.na(points_drive))
+  group_by(down, yardline_100) %>% 
+  summarise(expected_points = mean(points_drive, na.rm = TRUE),
+            .groups = 'drop')
+```
+
+```{r}
+expected_points %>% 
+  ggplot(.,
+         aes(x=yardline_100,
+             y=expected_points,
+             group=as.factor(down),
+             color=as.factor(down))) +
+  # geom_point(alpha = 0.3) +
+  geom_smooth(se = FALSE, span = 0.4) + 
+  labs(x="Yards from Opponent's End Zone",
+       y='Expected Points') + 
+  theme_nfl_analytics()
 ```
 
 
