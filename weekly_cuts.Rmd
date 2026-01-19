@@ -62,21 +62,21 @@ nfl_analytics_theme <- function(..., base_size = 12) {
 # teams <- nflreadr::load_teams(current = TRUE)
 ```
 
-```{r pbp_2022_24, include=TRUE}
-pbp_2022_24 <- load_pbp(seasons=2022:2024) %>% 
+```{r pbp_2022_25, include=TRUE}
+pbp_2022_25 <- load_pbp(seasons=2022:2025) %>% 
   filter(season_type == 'REG')
 ```
 
 FTN's charting (which is available in the {nflverse} package), contains additional play-level information that can be added to the `load_pbp()` data.
 
-```{r ftn_charting_2022_24, include=TRUE}
-ftn_charting_2022_24 <- load_ftn_charting(seasons = 2022:2024)
+```{r ftn_charting_2022_25, include=TRUE}
+ftn_charting_2022_25 <- load_ftn_charting(seasons = 2022:2025)
 ```
 
-```{r pbp_plus_ftn_2022_24, include=TRUE}
-pbp_plus_ftn_2022_24 <- pbp_2022_24 %>% 
+```{r pbp_plus_ftn_2022_25, include=TRUE}
+pbp_plus_ftn_2022_25 <- pbp_2022_25 %>% 
   left_join(x=.,
-            y=ftn_charting_2022_24,
+            y=ftn_charting_2022_25,
             by=c('game_id' = 'nflverse_game_id',
                  'play_id' = 'nflverse_play_id',
                  'season',
@@ -86,15 +86,15 @@ pbp_plus_ftn_2022_24 <- pbp_2022_24 %>%
 ## Weekly cuts (in progress)
 
 ```{r week_plot, include=TRUE}
-week_plot <- pbp_plus_ftn_2022_24 %>% filter(season == 2024) %>% summarise(max(week)) %>% pull()
+week_plot <- pbp_plus_ftn_2022_25 %>% filter(season == 2025) %>% summarise(max(week)) %>% pull()
 ```
 
 **Here, I'm thinking of setting up a structure that will allow for quick cuts of weekly data across many dimensions. Just starting to think through that structure.**
 
 ```{r}
-pbp_plus_ftn_2022_24 %>% 
+pbp_plus_ftn_2022_25 %>% 
   # select(contains('is_'))
-  filter(season == 2024,
+  filter(season == 2025,
          !is.na(passer),
          play_type == 'pass',
          is_no_huddle == TRUE) %>% 
@@ -137,17 +137,17 @@ analyze_play_characteristics <- function(data, fields) {
   })
 }
 
-test <- analyze_play_characteristics(pbp_plus_ftn_2022_24, summary_vars)
+test <- analyze_play_characteristics(pbp_plus_ftn_2022_25, summary_vars)
 
 test %>% 
   filter(posteam == 'PIT',
-         season == 2024,
+         season == 2025,
          !is.na(characteristic_value),
          play_characteristic == 'is_play_action')
 
 
 test %>% 
-  filter(season == 2024, 
+  filter(season == 2025, 
          week == 7,
          posteam == 'PIT',
          !is.na(characteristic_value)) %>% 
@@ -159,12 +159,12 @@ Charting data appears to be NAs for no play situations, like ends of quarters.
 ```{r}
 filter_posteam <- 'PIT'
 
-pbp_plus_ftn_2022_24 %>% 
-  filter(season == 2024,
+pbp_plus_ftn_2022_25 %>% 
+  filter(season == 2025,
          posteam == 'PIT') %>% 
   distinct(play_type)
 
-plot_play_types <- function(data, pos_team = 'PIT', use_season = 2024, play_var){
+plot_play_types <- function(data, pos_team = 'PIT', use_season = 2025, play_var){
   data %>% 
   filter(season == use_season, 
          posteam == pos_team,
@@ -184,15 +184,15 @@ plot_play_types <- function(data, pos_team = 'PIT', use_season = 2024, play_var)
 }
 
 plot_play_types(data = test, 
-                use_season = 2024,
+                use_season = 2025,
                 pos_team = 'PIT',
-                play_var = 'run_gap')
+                play_var = 'run_location')
 
 ```
 
 ```{r}
 test %>% 
-  filter(season == 2024, 
+  filter(season == 2025, 
          # play_characteristic == 'is_play_action',
          !is.na(characteristic_value),
          # characteristic_value == TRUE,
@@ -209,10 +209,10 @@ test %>%
 
 
 ```{r}
-pbp_plus_ftn_2022_24 %>% 
-  names()
-  filter(game_id == '2024_07_NYJ_PIT') %>% 
-  filter(is.na(is_play_action))
+pbp_plus_ftn_2022_25 %>% 
+  # names()
+  filter(game_id == '2025_18_BAL_PIT') %>% 
+  # filter(is.na(is_play_action))
   group_by(posteam, is_play_action) %>% 
   summarise(plays = n(),
             epa_per_play = mean(epa, na.rm = TRUE),
@@ -222,8 +222,8 @@ pbp_plus_ftn_2022_24 %>%
 
 
 ```{r}
-pbp_plus_ftn_2022_24 %>% 
-  filter(season == 2024) %>% 
+pbp_plus_ftn_2022_25 %>% 
+  filter(season == 2025) %>% 
   group_by(posteam, passer) %>% 
   # summarise(across(boolean_vars))
   mutate(
