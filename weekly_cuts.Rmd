@@ -220,20 +220,26 @@ pbp_plus_ftn_2022_25 %>%
   filter(posteam == 'PIT')
 ```
 
+This is not yet working as intended!
 
 ```{r}
 pbp_plus_ftn_2022_25 %>% 
-  filter(season == 2025) %>% 
+  filter(season == 2025,
+         !is.na(passer)) %>% 
   group_by(posteam, passer) %>% 
   # summarise(across(boolean_vars))
-  mutate(
+  # mutate(
+  summarise(
+    n = n(),
     across(
       boolean_vars,
       list(
-        mean = ~round(mean(epa, na.rm = TRUE), 2),
+        mean = ~round(mean(epa, na.rm = TRUE), 2)
         # zscore = ~scale(.),
-        mean_centered = ~. - mean(., na.rm = TRUE)
+        # mean_centered = ~. - mean(., na.rm = TRUE)
       ),
-      .names = "mean_epa_{.col}"
-    )) 
+      .names = c("mean_epa_{.col}"
+    ))) %>% 
+  filter(n >= 100) %>% 
+  arrange(-mean_epa_is_no_huddle)
 ```
