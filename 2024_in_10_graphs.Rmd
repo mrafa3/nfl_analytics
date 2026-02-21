@@ -734,7 +734,7 @@ pbp_2024 %>%
          aes(x=carry,
              y=cumsum_epa)) + 
              # color=if_else(rusher == 'S.Barkley', 'S.Barkley', 'Other'))) + 
-  geom_line(aes(groups=rusher)) + 
+  geom_line(aes(group=rusher)) + 
   # scale_color_manual(values = c('S.Barkley' = 'black',
   #                               'Other' = 'gray98')) + 
   theme_nfl_analytics() + 
@@ -771,7 +771,7 @@ receiver_epa <- pbp_2024 %>%
              # text = paste("Receiver:", receiver, 
              #              "<br>Catch:", catch, 
              #              "<br>Cumulative EPA:", round(cumsum_epa, 2)))) + 
-  geom_line(aes(groups=receiver)) + 
+  geom_line(aes(group=receiver)) + 
   theme_nfl_analytics() + 
   theme(legend.position = 'none'))
 ```
