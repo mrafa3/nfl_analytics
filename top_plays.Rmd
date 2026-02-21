@@ -1,6 +1,6 @@
 ---
 title: "NFL Analytics: top high-leverage plays"
-output: html_notebook
+output: html_document
 ---
 
 ```{r libraries, include=TRUE, warning=FALSE, message=FALSE}

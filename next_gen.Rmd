@@ -1,6 +1,6 @@
 ---
 title: "NFL Analytics: Next Gen Stats"
-output: html_notebook
+output: html_document
 ---
 
 ```{r setup, include=TRUE, warning=FALSE, message=FALSE}

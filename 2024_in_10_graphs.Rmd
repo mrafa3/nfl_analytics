@@ -1,6 +1,6 @@
 ---
 title: "The 2024 NFL season in 10 graphs"
-output: html_notebook
+output: html_document
 ---
 
 

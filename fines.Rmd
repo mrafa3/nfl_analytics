@@ -1,6 +1,6 @@
 ---
 title: "NFL Fines and Suspensions"
-output: html_notebook
+output: html_document
 ---
 
 ```{r setup, include=TRUE, warning=FALSE, message=FALSE}

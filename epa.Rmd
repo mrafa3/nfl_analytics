@@ -1,6 +1,6 @@
 ---
 title: "NFL Analytics: a review of Expected Points Added"
-output: html_notebook
+output: html_document
 ---
 
 

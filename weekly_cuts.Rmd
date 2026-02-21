@@ -1,6 +1,6 @@
 ---
 title: "Cutting PBP for weekly analysis of effectiveness"
-output: html_notebook
+output: html_document
 ---
 
 # Setup

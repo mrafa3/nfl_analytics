@@ -1,6 +1,6 @@
 ---
 title: "Analyzing Receiver Tracking Metrics from ESPN"
-output: html_notebook
+output: html_document
 ---
 
 ```{r setup, include=TRUE, warning=FALSE, message=FALSE}

@@ -1,6 +1,6 @@
 ---
 title: "Passing Breakdown with {nflverse}"
-output: html_notebook
+output: html_document
 ---
 
 # Setup

@@ -1,6 +1,6 @@
 ---
 title: "Calculating EPA League-wide"
-output: html_notebook
+output: html_document
 ---
 
 ```{r libraries, include=TRUE, warning=FALSE, message=FALSE}

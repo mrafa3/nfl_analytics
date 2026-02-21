@@ -1,6 +1,6 @@
 ---
 title: "Defensive Advanced Stats: EPA per play vs Success Rate"
-output: html_notebook
+output: html_document
 ---
 
 ```{r setup, include=TRUE, warning=FALSE, message=FALSE}

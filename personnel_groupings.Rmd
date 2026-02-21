@@ -1,6 +1,6 @@
 ---
 title: "NFL Analytics: Exploring personnel groupings"
-output: html_notebook
+output: html_document
 ---
 
 

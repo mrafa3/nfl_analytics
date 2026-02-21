@@ -1,6 +1,6 @@
 ---
 title: "Initial data analysis with nflverse packages"
-output: html_notebook
+output: html_document
 ---
 
 ```{r setup, include=TRUE, warning=FALSE, message=FALSE}
